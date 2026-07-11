@@ -25,8 +25,9 @@ These are the baseline engineering rules for Codemap.
 
 1. Every PR must leave the system in a stable state.
 2. Every PR must pass all automated tests before merge.
-3. PRs should include a short summary of what changed, why, and how it was validated.
-4. If a PR intentionally skips a test or leaves known risk, it must document the reason and follow-up plan.
+3. Every PR must include a written description, not only a title.
+4. PR descriptions should include what changed, why it changed, and how it was validated.
+5. If a PR intentionally skips a test or leaves known risk, it must document the reason and follow-up plan.
 
 ## Definition of Done
 
