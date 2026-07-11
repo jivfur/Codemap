@@ -36,6 +36,9 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Repo Graph generated index
+index.db
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
