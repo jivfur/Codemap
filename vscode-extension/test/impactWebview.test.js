@@ -31,6 +31,8 @@ test("renderImpactWebviewHtml embeds target and script payload", () => {
 
   assert.ok(html.includes("Impact Graph"));
   assert.ok(html.includes("pkg.mod.t"));
+  assert.ok(html.includes("impactGraph"));
+  assert.ok(html.includes("node-circle"));
   assert.ok(html.includes("openSymbol"));
 });
 
