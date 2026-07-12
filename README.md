@@ -19,3 +19,13 @@ The goal is to help engineers and LLM-based tools navigate large codebases with 
 ## Status
 
 This repository currently contains the first CLI scaffold and Python-based indexing core. The full roadmap is in [docs/repo-graph-spec.md](docs/repo-graph-spec.md).
+
+## Testing
+
+- Run the test suite locally with:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+- CI runs the same command for every pull request and on pushes to `main`.
