@@ -26,7 +26,7 @@ How to use this file:
 | 6 | Incremental Dependent Re-resolution | feat/incremental-reresolution | Merged | Improve `index --changed-only` to re-resolve impacted cross-file edges in importers of changed files. | Unit tests proving importer edges are refreshed when a dependency changes. | All tests pass. Changed-only flow updates related edges correctly. | [PR #7](https://github.com/jivfur/Codemap/pull/7) |
 | 7 | Inheritance Edges | feat/inherits-edges | Merged | Add extraction and storage of `inherits` edges for class hierarchies. | Unit tests for single and multi-level inheritance mapping. | All tests pass. Existing commands continue to behave correctly. | [PR #8](https://github.com/jivfur/Codemap/pull/8) |
 | 8 | Test and CI Baseline | chore/test-ci-baseline | Merged | Add test runner config, baseline fixtures, and CI workflow to run tests on PRs. | CI runs full suite on push and PR. | CI green on default branch. Local instructions documented. | [PR #9](https://github.com/jivfur/Codemap/pull/9) |
-| 9 | VS Code Extension Scaffold | feat/vscode-extension-scaffold | In Progress | Scaffold extension package with commands and basic integration points to query SQLite index. | Unit tests for extension command wiring where practical. | Extension activates, commands execute, and index query bridge is functional. | Branch started |
+| 9 | VS Code Extension Scaffold | feat/vscode-extension-scaffold | Merged | Scaffold extension package with commands and basic integration points to query SQLite index. | Unit tests for extension command wiring where practical. | Extension activates, commands execute, and index query bridge is functional. | [PR #10](https://github.com/jivfur/Codemap/pull/10) |
 
 ## Suggested Working Rules Per PR
 
@@ -38,5 +38,4 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 9: VS Code Extension Scaffold
-- Branch: feat/vscode-extension-scaffold
+- Current roadmap completed through PR #10.
