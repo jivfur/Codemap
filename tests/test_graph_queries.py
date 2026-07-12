@@ -4,7 +4,7 @@ import sqlite3
 import unittest
 from pathlib import Path
 
-from indexer.graph_queries import get_impact, get_neighbors
+from indexer.graph_queries import get_impact, get_neighbors, get_path
 
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "indexer" / "schema.sql"
@@ -91,6 +91,16 @@ class GraphQueryTests(unittest.TestCase):
                 {"symbol": "pkg.mod.c", "depth": 2, "resolved": 1},
             ],
         )
+
+    def test_path_returns_shortest_route(self) -> None:
+        result = get_path(self.conn, "pkg.mod.c", "pkg.mod.a")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["path"], ["pkg.mod.c", "pkg.mod.b", "pkg.mod.a"])
+
+    def test_path_returns_empty_when_unreachable(self) -> None:
+        result = get_path(self.conn, "pkg.mod.a", "pkg.mod.d")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["path"], [])
 
 
 if __name__ == "__main__":
