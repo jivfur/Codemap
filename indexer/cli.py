@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .db import connect_db, init_schema
+from .graph_queries import get_impact, get_neighbors
 from .index import build_or_update_index
 
 
@@ -106,6 +107,61 @@ def cmd_body(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def cmd_neighbors(args: argparse.Namespace) -> int:
+    conn = connect_db(_db_path())
+    try:
+        init_schema(conn, _repo_root() / "indexer" / "schema.sql")
+        result = get_neighbors(conn, args.symbol)
+        if not result:
+            print("Symbol not found.")
+            return 1
+
+        target = result["target"]["qualified_name"]
+        print(f"# Neighbors for {target}")
+        print("Callers:")
+        callers = result["callers"]
+        if not callers:
+            print("  - (none)")
+        for row in callers:
+            state = "resolved" if row["resolved"] else "unresolved"
+            print(f"  - {row['symbol']} [{state}]")
+
+        print("Callees:")
+        callees = result["callees"]
+        if not callees:
+            print("  - (none)")
+        for row in callees:
+            state = "resolved" if row["resolved"] else "unresolved"
+            print(f"  - {row['symbol']} [{state}]")
+        return 0
+    finally:
+        conn.close()
+
+
+def cmd_impact(args: argparse.Namespace) -> int:
+    conn = connect_db(_db_path())
+    try:
+        init_schema(conn, _repo_root() / "indexer" / "schema.sql")
+        result = get_impact(conn, args.symbol)
+        if not result:
+            print("Symbol not found.")
+            return 1
+
+        target = result["target"]["qualified_name"]
+        impacted = result["impacted"]
+        print(f"# Impact for {target}")
+        if not impacted:
+            print("No callers found.")
+            return 0
+
+        for row in impacted:
+            state = "resolved" if row["resolved"] else "unresolved"
+            print(f"- depth={row['depth']} {row['symbol']} [{state}]")
+        return 0
+    finally:
+        conn.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Repo graph index CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -125,6 +181,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_body = sub.add_parser("body", help="Show source for symbol")
     p_body.add_argument("symbol", help="Qualified or short symbol name")
     p_body.set_defaults(func=cmd_body)
+
+    p_neighbors = sub.add_parser("neighbors", help="Show direct callers and callees")
+    p_neighbors.add_argument("symbol", help="Qualified or short symbol name")
+    p_neighbors.set_defaults(func=cmd_neighbors)
+
+    p_impact = sub.add_parser("impact", help="Show full reverse dependency closure")
+    p_impact.add_argument("symbol", help="Qualified or short symbol name")
+    p_impact.set_defaults(func=cmd_impact)
 
     return parser
 
