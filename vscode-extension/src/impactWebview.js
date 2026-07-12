@@ -55,11 +55,17 @@ function renderImpactWebviewHtml(graphData) {
       .node-unresolved { fill: #fee2e2; stroke: #cf222e; }
       .node-label { font-size: 12px; fill: #1f2328; }
       .hint { margin-top: 8px; font-size: 12px; color: #57606a; }
+      .controls { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12px; color: #57606a; }
+      .controls select { padding: 2px 6px; border-radius: 6px; border: 1px solid #d0d7de; background: #fff; }
     </style>
   </head>
   <body>
     <h2>Impact Graph</h2>
     <p class="meta">Target symbol: <strong id="target"></strong></p>
+    <div class="controls">
+      <label for="maxDepthFilter">Max depth</label>
+      <select id="maxDepthFilter"></select>
+    </div>
     <div class="legend">
       <span><span class="swatch swatch-target"></span>Target</span>
       <span><span class="swatch swatch-resolved"></span>Resolved caller</span>
@@ -80,6 +86,7 @@ function renderImpactWebviewHtml(graphData) {
       const marginX = 90;
       const marginY = 56;
       const labelOffset = 30;
+      const maxDepthFilter = document.getElementById('maxDepthFilter');
 
       function esc(value) {
         return String(value)
@@ -132,48 +139,106 @@ function renderImpactWebviewHtml(graphData) {
         return 'node-unresolved';
       }
 
-      const layout = computeLayout(Array.isArray(data.nodes) ? data.nodes : []);
-
-      for (const edge of Array.isArray(data.edges) ? data.edges : []) {
-        const from = layout.get(edge.from);
-        const to = layout.get(edge.to);
-        if (!from || !to) {
-          continue;
+      function getMaxDepth(nodes) {
+        let maxDepth = 0;
+        for (const node of nodes) {
+          const depth = Number(node.depth || 0);
+          if (Number.isFinite(depth) && depth > maxDepth) {
+            maxDepth = depth;
+          }
         }
-        const edgeClass = edge.resolution === 'unresolved' ? 'edge-line edge-unresolved' : 'edge-line';
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', String(from.x));
-        line.setAttribute('y1', String(from.y));
-        line.setAttribute('x2', String(to.x));
-        line.setAttribute('y2', String(to.y));
-        line.setAttribute('class', edgeClass);
-        svg.appendChild(line);
+        return maxDepth;
       }
 
-      for (const layoutNode of layout.values()) {
-        const { x, y, node } = layoutNode;
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      function renderGraph(activeMaxDepth) {
+        const allNodes = Array.isArray(data.nodes) ? data.nodes : [];
+        const filteredNodes = allNodes.filter((node) => Number(node.depth || 0) <= activeMaxDepth);
+        const allowed = new Set(filteredNodes.map((node) => node.id));
+        const filteredEdges = (Array.isArray(data.edges) ? data.edges : []).filter(
+          (edge) => allowed.has(edge.from) && allowed.has(edge.to)
+        );
 
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', String(x));
-        circle.setAttribute('cy', String(y));
-        circle.setAttribute('r', node.resolution === 'target' ? '14' : '11');
-        circle.setAttribute('class', 'node-circle ' + nodeClass(node));
-        circle.setAttribute('data-symbol', esc(node.id));
-        circle.addEventListener('click', () => {
-          vscode.postMessage({ command: 'openSymbol', symbol: node.id });
-        });
+        while (svg.firstChild) {
+          svg.removeChild(svg.firstChild);
+        }
 
-        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        label.setAttribute('x', String(x + labelOffset));
-        label.setAttribute('y', String(y + 4));
-        label.setAttribute('class', 'node-label');
-        label.textContent = node.label;
+        const layout = computeLayout(filteredNodes);
 
-        g.appendChild(circle);
-        g.appendChild(label);
-        svg.appendChild(g);
+        for (const edge of filteredEdges) {
+          const from = layout.get(edge.from);
+          const to = layout.get(edge.to);
+          if (!from || !to) {
+            continue;
+          }
+          const edgeClass = edge.resolution === 'unresolved' ? 'edge-line edge-unresolved' : 'edge-line';
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', String(from.x));
+          line.setAttribute('y1', String(from.y));
+          line.setAttribute('x2', String(to.x));
+          line.setAttribute('y2', String(to.y));
+          line.setAttribute('class', edgeClass);
+          svg.appendChild(line);
+        }
+
+        for (const layoutNode of layout.values()) {
+          const { x, y, node } = layoutNode;
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', String(x));
+          circle.setAttribute('cy', String(y));
+          circle.setAttribute('r', node.resolution === 'target' ? '14' : '11');
+          circle.setAttribute('class', 'node-circle ' + nodeClass(node));
+          circle.setAttribute('data-symbol', esc(node.id));
+          circle.addEventListener('click', () => {
+            vscode.postMessage({ command: 'openSymbol', symbol: node.id });
+          });
+
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', String(x + labelOffset));
+          label.setAttribute('y', String(y + 4));
+          label.setAttribute('class', 'node-label');
+          label.textContent = node.label;
+
+          g.appendChild(circle);
+          g.appendChild(label);
+          svg.appendChild(g);
+        }
       }
+
+      const graphMaxDepth = getMaxDepth(Array.isArray(data.nodes) ? data.nodes : []);
+      maxDepthFilter.innerHTML = '';
+      for (let depth = 1; depth <= graphMaxDepth; depth += 1) {
+        const option = document.createElement('option');
+        option.value = String(depth);
+        option.textContent = String(depth);
+        maxDepthFilter.appendChild(option);
+      }
+      if (graphMaxDepth > 1) {
+        const allOption = document.createElement('option');
+        allOption.value = String(graphMaxDepth);
+        allOption.textContent = 'All';
+        allOption.selected = true;
+        maxDepthFilter.appendChild(allOption);
+      } else if (graphMaxDepth === 1 && maxDepthFilter.options.length > 0) {
+        maxDepthFilter.options[0].selected = true;
+      }
+
+      if (maxDepthFilter.options.length === 0) {
+        const option = document.createElement('option');
+        option.value = '0';
+        option.textContent = 'Target only';
+        option.selected = true;
+        maxDepthFilter.appendChild(option);
+      }
+
+      maxDepthFilter.addEventListener('change', () => {
+        const depth = Number(maxDepthFilter.value || 0);
+        renderGraph(Number.isFinite(depth) ? depth : graphMaxDepth);
+      });
+
+      const initialDepth = Number(maxDepthFilter.value || graphMaxDepth);
+      renderGraph(Number.isFinite(initialDepth) ? initialDepth : graphMaxDepth);
     </script>
   </body>
 </html>`;

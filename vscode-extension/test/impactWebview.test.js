@@ -32,6 +32,8 @@ test("renderImpactWebviewHtml embeds target and script payload", () => {
   assert.ok(html.includes("Impact Graph"));
   assert.ok(html.includes("pkg.mod.t"));
   assert.ok(html.includes("impactGraph"));
+  assert.ok(html.includes("maxDepthFilter"));
+  assert.ok(html.includes("renderGraph("));
   assert.ok(html.includes("node-circle"));
   assert.ok(html.includes("openSymbol"));
 });
@@ -100,7 +102,7 @@ test("openImpactWebviewPanel handles openSymbol messages", async () => {
   openImpactWebviewPanel(
     fakeVscode,
     { target: "pkg.mod.v", nodes: [], edges: [] },
-    async () => {}
+    async () => { }
   );
   assert.equal(createCount, 2);
 });
