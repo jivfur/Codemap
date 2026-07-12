@@ -14,6 +14,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Repo Graph: Open Impact Webview` opens a lightweight SVG impact graph with clickable nodes.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
+- The graph supports pan/zoom and node dragging for denser impact maps.
 
 ## On-Save Reindex
 
