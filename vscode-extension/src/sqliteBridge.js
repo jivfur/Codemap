@@ -324,8 +324,12 @@ async function getImpactForSymbol(workspaceRoot, symbol, options = {}) {
 }
 
 async function getRepoOverviewGraph(workspaceRoot, options = {}) {
-  const limit = Number(options.limit || 40);
-  const bucketSize = Number(options.bucketSize || 10);
+  const rawLimit = Number(options.limit || 40);
+  const limit = Number.isFinite(rawLimit) ? Math.max(5, Math.min(200, Math.floor(rawLimit))) : 40;
+  const rawBucket = Number(options.bucketSize || 10);
+  const bucketSize = Number.isFinite(rawBucket) ? Math.max(1, Math.floor(rawBucket)) : 10;
+  const rawKind = String(options.kind || "all").toLowerCase();
+  const kind = new Set(["all", "function", "method", "class", "const"]).has(rawKind) ? rawKind : "all";
 
   const topRows = await queryRows(
     workspaceRoot,
@@ -351,10 +355,11 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     FROM symbols s
     LEFT JOIN inbound ON inbound.symbol_id = s.id
     LEFT JOIN outbound ON outbound.symbol_id = s.id
+        WHERE (? = 'all' OR s.kind = ?)
     ORDER BY inbound_calls DESC, outbound_calls DESC, s.qualified_name
     LIMIT ?
     `,
-    [limit],
+        [kind, kind, limit],
     options
   );
 
@@ -368,7 +373,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   }));
 
   if (selectedNames.length === 0) {
-    return { target: "Repository Overview", nodes, edges: [] };
+    return { target: `Repository Overview (${kind}, top ${limit})`, nodes, edges: [] };
   }
 
   const inClause = buildPlaceholders(selectedNames.length);
@@ -391,7 +396,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: "Repository Overview",
+    target: `Repository Overview (${kind}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,

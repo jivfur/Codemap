@@ -459,17 +459,21 @@ test("openRepoOverview opens repository-wide graph", async () => {
   __resetImpactWebviewPanelForTests();
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
+  let receivedOptions = null;
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: [] }),
-    getRepoOverviewGraph: async () => ({
-      target: "Repository Overview",
-      nodes: [
-        { id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" },
-        { id: "pkg.mod.beta", label: "pkg.mod.beta", depth: 1, resolution: "resolved" },
-      ],
-      edges: [{ from: "pkg.mod.alpha", to: "pkg.mod.beta", resolution: "resolved" }],
-    }),
+    getRepoOverviewGraph: async (_root, options) => {
+      receivedOptions = options;
+      return {
+        target: "Repository Overview",
+        nodes: [
+          { id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" },
+          { id: "pkg.mod.beta", label: "pkg.mod.beta", depth: 1, resolution: "resolved" },
+        ],
+        edges: [{ from: "pkg.mod.alpha", to: "pkg.mod.beta", resolution: "resolved" }],
+      };
+    },
     findSymbolLocation: async () => ({ path: "pkg/mod.py", start: 1, end: 1 }),
   });
 
@@ -477,4 +481,5 @@ test("openRepoOverview opens repository-wide graph", async () => {
   assert.equal(fake.webviewPanels.length, 1);
   assert.ok(fake.webviewPanels[0].title.includes("Repository Overview"));
   assert.ok(fake.webviewPanels[0].webview.html.includes("Repository Overview"));
+  assert.deepEqual(receivedOptions, { limit: 40, bucketSize: 10, kind: "all" });
 });

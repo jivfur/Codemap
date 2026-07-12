@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #22:
+Completed PR sequence through PR #25:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -86,9 +86,11 @@ Completed PR sequence through PR #22:
   - PR #20: panel reuse
   - PR #21: SVG graph rendering
   - PR #22: depth filtering
+  - PR #24: force-layout interactions
+  - PR #25: repository overview mode
 
 Current candidate feature:
-- Repository-wide graph overview mode, implemented as a bounded overview slice rather than a raw full-graph dump.
+- Repository overview controls (top-N size and symbol kind filters) to tune broad graph exploration.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

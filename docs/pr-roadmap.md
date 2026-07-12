@@ -37,8 +37,9 @@ How to use this file:
 | 17 | Reuse Impact Webview Panel | feat/vscode-impact-webview-reuse | Merged | Reuse a single impact webview panel across repeated command invocations, refreshing title and payload instead of creating duplicates. | Unit tests for panel lifecycle (create once, reveal on reuse, recreate after dispose). | Re-running impact view commands updates one existing panel and preserves open-symbol behavior. | [PR #20](https://github.com/jivfur/Codemap/pull/20) |
 | 18 | Impact Webview SVG Graph Rendering | feat/vscode-impact-webview-svg | Merged | Replace list-style impact rendering with an SVG graph layout (depth-based columns, edge lines, clickable nodes) while keeping current message contract. | Unit tests validating graph payload embed and SVG render markers. | Impact webview shows a visual graph and node clicks still open symbols. | [PR #21](https://github.com/jivfur/Codemap/pull/21) |
 | 19 | Impact Webview Depth Filter | feat/vscode-impact-depth-filter | Merged | Add a max-depth filter control in the impact webview to narrow rendered nodes/edges without re-querying data. | Unit tests validating depth filter controls and render function wiring in webview HTML. | Users can reduce visual scope to shallow impact layers while preserving node click navigation. | [PR #22](https://github.com/jivfur/Codemap/pull/22) |
-| 20 | Impact Webview Force Layout Interactions | feat/vscode-impact-force-layout | In Progress | Add a force-directed placement pass and interaction controls (pan, zoom, node drag, reset view) for dense impact graphs while preserving click-to-open and depth filtering. | Unit tests validating force-layout and interaction hooks in webview HTML output. | Impact graphs remain navigable under dense caller sets with working node-open behavior. | Branch started |
-| 21 | Repo-Wide Graph Overview | feat/vscode-repo-overview | In Progress | Add a repository-wide overview command that renders a bounded top-symbol slice of the graph with shared webview interactions, rather than a single-symbol impact closure. | Unit tests for overview query shaping, command wiring, and webview contract. | Users can inspect a broad repo slice without loading the raw full graph into the webview. | Branch started |
+| 20 | Impact Webview Force Layout Interactions | feat/vscode-impact-force-layout | Merged | Add a force-directed placement pass and interaction controls (pan, zoom, node drag, reset view) for dense impact graphs while preserving click-to-open and depth filtering. | Unit tests validating force-layout and interaction hooks in webview HTML output. | Impact graphs remain navigable under dense caller sets with working node-open behavior. | [PR #24](https://github.com/jivfur/Codemap/pull/24) |
+| 21 | Repo-Wide Graph Overview | feat/vscode-repo-overview | Merged | Add a repository-wide overview command that renders a bounded top-symbol slice of the graph with shared webview interactions, rather than a single-symbol impact closure. | Unit tests for overview query shaping, command wiring, and webview contract. | Users can inspect a broad repo slice without loading the raw full graph into the webview. | [PR #25](https://github.com/jivfur/Codemap/pull/25) |
+| 22 | Repo Overview Filters and Size Controls | feat/vscode-repo-overview-filters | In Progress | Add command-time controls for repo overview scope (symbol kind and top-N size), and pass those settings through the overview query and panel title. | Unit tests for query option forwarding and filtered overview output contracts. | Users can tune repo overview breadth without code changes or hardcoded limits. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -50,5 +51,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 21: Repo-Wide Graph Overview
-- Branch: feat/vscode-repo-overview
+- PR 22: Repo Overview Filters and Size Controls
+- Branch: feat/vscode-repo-overview-filters
