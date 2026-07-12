@@ -13,6 +13,7 @@ function makeFakeVscode() {
   const treeViews = [];
   const saveDocumentListeners = [];
   const statusMessages = [];
+  const codeLensRegistrations = [];
 
   const api = {
     Uri: {
@@ -38,6 +39,12 @@ function makeFakeVscode() {
     },
     TextEditorRevealType: {
       InCenter: 0,
+    },
+    CodeLens: class {
+      constructor(range, command) {
+        this.range = range;
+        this.command = command;
+      }
     },
     TreeItem: class {
       constructor(label, collapsibleState) {
@@ -77,6 +84,12 @@ function makeFakeVscode() {
     commands: {
       registerCommand: (id, fn) => {
         registered.set(id, fn);
+        return { dispose: () => {} };
+      },
+    },
+    languages: {
+      registerCodeLensProvider: (selector, provider) => {
+        codeLensRegistrations.push({ selector, provider });
         return { dispose: () => {} };
       },
     },
@@ -123,6 +136,7 @@ function makeFakeVscode() {
     treeViews,
     saveDocumentListeners,
     statusMessages,
+    codeLensRegistrations,
   };
 }
 
@@ -148,7 +162,9 @@ test("activateWithApi registers expected commands", () => {
   assert.ok(fake.registered.has("codemap.findSymbol"));
   assert.ok(fake.registered.has("codemap.showImpact"));
   assert.ok(fake.registered.has("codemap.reindexWorkspace"));
+  assert.ok(fake.registered.has("codemap.showCallersForSymbol"));
   assert.equal(fake.treeViews.length, 1);
+  assert.equal(fake.codeLensRegistrations.length, 1);
   assert.ok(context.subscriptions.length >= 5);
 });
 
@@ -336,4 +352,34 @@ test("on-save listener debounces and invokes changed-only index", async () => {
   assert.equal(runCalls.length, 1);
   assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
   assert.equal(fake.statusMessages.length, 1);
+});
+
+test("showCallersForSymbol command opens resolved selection", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  fake.api.window.showQuickPick = async (items) => items[0] || null;
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    findSymbolLocation: async () => ({ path: "pkg/mod.py", start: 2, end: 2 }),
+  });
+
+  const cmd = fake.registered.get("codemap.showCallersForSymbol");
+  await cmd("pkg.mod.target", [{ symbol: "pkg.mod.caller", resolved: true }]);
+  assert.equal(fake.documents[0].uri.fsPath, "/tmp/repo/pkg/mod.py");
+});
+
+test("showCallersForSymbol reports unresolved selection", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  fake.api.window.showQuickPick = async (items) => items[0] || null;
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+  });
+
+  const cmd = fake.registered.get("codemap.showCallersForSymbol");
+  await cmd("pkg.mod.target", [{ symbol: "pkg.mod.unknown", resolved: false }]);
+  assert.equal(fake.infoMessages[0], "Caller pkg.mod.unknown is unresolved.");
 });

@@ -39,6 +39,10 @@
       {
         "command": "codemap.reindexWorkspace",
         "title": "Repo Graph: Reindex Workspace"
+      },
+      {
+        "command": "codemap.showCallersForSymbol",
+        "title": "Codemap: Show Callers For Symbol"
       }
     ],
     "views": {

@@ -24,6 +24,12 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - Clicking a resolved symbol opens the source file and reveals the symbol range.
 - Use `Codemap: Refresh Neighbors` to force a manual refresh.
 
+## CodeLens Caller Counts
+
+- Functions and methods in supported files show a `Called from N places` CodeLens.
+- Clicking the lens opens a caller picker.
+- Choosing a resolved caller jumps to its source location.
+
 ## SQLite Read Bridge
 
 - Read commands use `sqlite3` against `index.db` in the workspace root.
