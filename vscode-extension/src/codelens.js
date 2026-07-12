@@ -39,9 +39,9 @@ function createCallerCodeLensProvider(vscodeApi, workspaceRoot, deps = {}) {
         const range = new vscodeApi.Range(new vscodeApi.Position(line, 0), new vscodeApi.Position(line, 0));
         lenses.push(
           new vscodeApi.CodeLens(range, {
-            command: "codemap.showCallersForSymbol",
+            command: "codemap.openImpactWebview",
             title: `Called from ${count} ${count === 1 ? "place" : "places"}`,
-            arguments: [symbol.qualifiedName, callers],
+            arguments: [symbol.qualifiedName],
           })
         );
       }

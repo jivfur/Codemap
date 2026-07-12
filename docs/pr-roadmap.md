@@ -32,7 +32,8 @@ How to use this file:
 | 12 | Command Palette UX Completion | feat/vscode-command-ux | Merged | Add `Repo Graph: Show Impact`, `Repo Graph: Find Symbol`, and `Repo Graph: Reindex Workspace` with structured outputs and improved quick-pick flows. | Unit tests for command handlers and argument prompts. | Commands run end-to-end and handle empty/error states cleanly. | [PR #15](https://github.com/jivfur/Codemap/pull/15) |
 | 13 | On-Save Changed-Only Reindex | feat/vscode-onsave-reindex | Merged | Hook `workspace.onDidSaveTextDocument` to trigger background `index --changed-only` refresh and lightweight status notifications. | Unit tests for save event filtering/debouncing and invocation arguments. | Reindex triggers only for supported files and does not block editor UX. | [PR #16](https://github.com/jivfur/Codemap/pull/16) |
 | 14 | CodeLens Caller Counts | feat/vscode-codelens-callers | Merged | Add CodeLens annotations (`Called from N places`) above function/method symbols backed by graph queries. | Unit tests for lens provider counts and command payloads. | CodeLens appears deterministically and navigates to callers list. | [PR #17](https://github.com/jivfur/Codemap/pull/17) |
-| 15 | Impact Webview MVP | feat/vscode-impact-webview | In Progress | Add a simple webview subgraph explorer centered on a symbol impact query (nodes + edges + click-to-open). | Unit tests for webview message contracts and command plumbing. | Webview launches from command and renders consistent impact graph data. | Branch started |
+| 15 | Impact Webview MVP | feat/vscode-impact-webview | Merged | Add a simple webview subgraph explorer centered on a symbol impact query (nodes + edges + click-to-open). | Unit tests for webview message contracts and command plumbing. | Webview launches from command and renders consistent impact graph data. | [PR #18](https://github.com/jivfur/Codemap/pull/18) |
+| 16 | CodeLens to Impact Webview Flow | feat/vscode-codelens-impact-webview | In Progress | Route CodeLens click actions to open the impact webview directly for the selected symbol, preserving click-to-open navigation from the webview. | Unit tests for CodeLens command payloads and openImpactWebview symbol-argument plumbing. | Clicking a CodeLens opens the webview for that symbol without extra prompt friction. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -44,5 +45,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 15: Impact Webview MVP
-- Branch: feat/vscode-impact-webview
+- PR 16: CodeLens to Impact Webview Flow
+- Branch: feat/vscode-codelens-impact-webview

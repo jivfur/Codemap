@@ -28,8 +28,8 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 ## CodeLens Caller Counts
 
 - Functions and methods in supported files show a `Called from N places` CodeLens.
-- Clicking the lens opens a caller picker.
-- Choosing a resolved caller jumps to its source location.
+- Clicking the lens opens the impact webview centered on that symbol.
+- Clicking a node in the webview jumps to its source location.
 
 ## SQLite Read Bridge
 

@@ -348,18 +348,20 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
   register(
     context.subscriptions,
-    vscodeApi.commands.registerCommand("codemap.openImpactWebview", async () => {
+    vscodeApi.commands.registerCommand("codemap.openImpactWebview", async (initialSymbol) => {
       const currentRoot = getWorkspaceRoot(vscodeApi);
       if (!currentRoot) {
         vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
         return;
       }
 
-      const symbol = await vscodeApi.window.showInputBox({
-        title: "Repo Graph: Open Impact Webview",
-        prompt: "Enter qualified or short symbol name",
-        ignoreFocusOut: true,
-      });
+      const symbol = initialSymbol
+        ? String(initialSymbol)
+        : await vscodeApi.window.showInputBox({
+            title: "Repo Graph: Open Impact Webview",
+            prompt: "Enter qualified or short symbol name",
+            ignoreFocusOut: true,
+          });
 
       if (!symbol) {
         return;
