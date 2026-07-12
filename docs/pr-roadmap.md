@@ -36,7 +36,8 @@ How to use this file:
 | 16 | CodeLens to Impact Webview Flow | feat/vscode-codelens-impact-webview | Merged | Route CodeLens click actions to open the impact webview directly for the selected symbol, preserving click-to-open navigation from the webview. | Unit tests for CodeLens command payloads and openImpactWebview symbol-argument plumbing. | Clicking a CodeLens opens the webview for that symbol without extra prompt friction. | [PR #19](https://github.com/jivfur/Codemap/pull/19) |
 | 17 | Reuse Impact Webview Panel | feat/vscode-impact-webview-reuse | Merged | Reuse a single impact webview panel across repeated command invocations, refreshing title and payload instead of creating duplicates. | Unit tests for panel lifecycle (create once, reveal on reuse, recreate after dispose). | Re-running impact view commands updates one existing panel and preserves open-symbol behavior. | [PR #20](https://github.com/jivfur/Codemap/pull/20) |
 | 18 | Impact Webview SVG Graph Rendering | feat/vscode-impact-webview-svg | Merged | Replace list-style impact rendering with an SVG graph layout (depth-based columns, edge lines, clickable nodes) while keeping current message contract. | Unit tests validating graph payload embed and SVG render markers. | Impact webview shows a visual graph and node clicks still open symbols. | [PR #21](https://github.com/jivfur/Codemap/pull/21) |
-| 19 | Impact Webview Depth Filter | feat/vscode-impact-depth-filter | In Progress | Add a max-depth filter control in the impact webview to narrow rendered nodes/edges without re-querying data. | Unit tests validating depth filter controls and render function wiring in webview HTML. | Users can reduce visual scope to shallow impact layers while preserving node click navigation. | Branch started |
+| 19 | Impact Webview Depth Filter | feat/vscode-impact-depth-filter | Merged | Add a max-depth filter control in the impact webview to narrow rendered nodes/edges without re-querying data. | Unit tests validating depth filter controls and render function wiring in webview HTML. | Users can reduce visual scope to shallow impact layers while preserving node click navigation. | [PR #22](https://github.com/jivfur/Codemap/pull/22) |
+| 20 | Impact Webview Force Layout Interactions | feat/vscode-impact-force-layout | In Progress | Add a force-directed placement pass and interaction controls (pan, zoom, node drag, reset view) for dense impact graphs while preserving click-to-open and depth filtering. | Unit tests validating force-layout and interaction hooks in webview HTML output. | Impact graphs remain navigable under dense caller sets with working node-open behavior. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -48,5 +49,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 19: Impact Webview Depth Filter
-- Branch: feat/vscode-impact-depth-filter
+- PR 20: Impact Webview Force Layout Interactions
+- Branch: feat/vscode-impact-force-layout
