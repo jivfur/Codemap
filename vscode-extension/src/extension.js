@@ -395,8 +395,29 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         return;
       }
 
+      const kindPick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "All symbol kinds", kind: "all" },
+          { label: "Functions", kind: "function" },
+          { label: "Methods", kind: "method" },
+          { label: "Classes", kind: "class" },
+        ],
+        { title: "Repo Graph: Overview Symbol Kind" }
+      );
+      const selectedKind = kindPick?.kind || "all";
+
+      const topInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Size",
+        prompt: "How many top symbols to include?",
+        value: "40",
+        ignoreFocusOut: true,
+      });
+      const parsedTop = Number(topInput);
+      const limit = Number.isFinite(parsedTop) ? Math.max(5, Math.min(200, Math.floor(parsedTop))) : 40;
+      const bucketSize = Math.max(1, Math.floor(limit / 4));
+
       try {
-        const overview = await repoOverviewWithSqlite(currentRoot, { limit: 40, bucketSize: 10 });
+        const overview = await repoOverviewWithSqlite(currentRoot, { limit, bucketSize, kind: selectedKind });
         if (!overview || overview.nodes.length === 0) {
           vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
           return;
@@ -408,7 +429,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           async (selectedSymbol) => {
             await openSymbolLocationByName(selectedSymbol);
           },
-          { panelTitle: "Codemap Repository Overview" }
+          { panelTitle: `Codemap Repository Overview (${selectedKind}, top ${limit})` }
         );
       } catch (error) {
         vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "repo overview"));
