@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { activateWithApi } = require("../src/extension");
+const { activateWithApi, isSupportedSavedDocument } = require("../src/extension");
 
 function makeFakeVscode() {
   const registered = new Map();
@@ -11,6 +11,8 @@ function makeFakeVscode() {
   const documents = [];
   const activeEditorListeners = [];
   const treeViews = [];
+  const saveDocumentListeners = [];
+  const statusMessages = [];
 
   const api = {
     Uri: {
@@ -67,6 +69,10 @@ function makeFakeVscode() {
         documents.push(doc);
         return doc;
       },
+      onDidSaveTextDocument: (listener) => {
+        saveDocumentListeners.push(listener);
+        return { dispose: () => {} };
+      },
     },
     commands: {
       registerCommand: (id, fn) => {
@@ -86,6 +92,10 @@ function makeFakeVscode() {
       },
       showErrorMessage: async (m) => {
         errorMessages.push(m);
+      },
+      setStatusBarMessage: (text) => {
+        statusMessages.push(text);
+        return { dispose: () => {} };
       },
       createTreeView: (id, options) => {
         const tree = { id, options, dispose: () => {} };
@@ -111,8 +121,16 @@ function makeFakeVscode() {
     documents,
     activeEditorListeners,
     treeViews,
+    saveDocumentListeners,
+    statusMessages,
   };
 }
+
+test("isSupportedSavedDocument validates extension and workspace boundary", () => {
+  assert.equal(isSupportedSavedDocument("/tmp/repo", { uri: { fsPath: "/tmp/repo/src/a.py" } }), true);
+  assert.equal(isSupportedSavedDocument("/tmp/repo", { uri: { fsPath: "/tmp/repo/src/a.txt" } }), false);
+  assert.equal(isSupportedSavedDocument("/tmp/repo", { uri: { fsPath: "/tmp/other/a.py" } }), false);
+});
 
 test("activateWithApi registers expected commands", () => {
   const fake = makeFakeVscode();
@@ -275,4 +293,47 @@ test("reindex workspace command uses changed-only mode", async () => {
 
   await fake.registered.get("codemap.reindexWorkspace")();
   assert.deepEqual(calls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
+});
+
+test("on-save listener debounces and invokes changed-only index", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  const runCalls = [];
+  const scheduled = [];
+
+  const schedule = (fn, delayMs) => {
+    const handle = { fn, delayMs, cancelled: false };
+    scheduled.push(handle);
+    return handle;
+  };
+
+  const cancelSchedule = (handle) => {
+    handle.cancelled = true;
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async (cwd, args) => {
+      runCalls.push({ cwd, args });
+      return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
+    },
+    schedule,
+    cancelSchedule,
+    saveDebounceMs: 300,
+  });
+
+  assert.equal(fake.saveDocumentListeners.length, 1);
+  const onSave = fake.saveDocumentListeners[0];
+
+  onSave({ uri: { fsPath: "/tmp/repo/src/main.py" } });
+  onSave({ uri: { fsPath: "/tmp/repo/src/main.py" } });
+  onSave({ uri: { fsPath: "/tmp/repo/src/ignore.txt" } });
+
+  assert.equal(scheduled.length, 2);
+  assert.equal(scheduled[0].cancelled, true);
+  assert.equal(runCalls.length, 0);
+
+  await scheduled[1].fn();
+  assert.equal(runCalls.length, 1);
+  assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
+  assert.equal(fake.statusMessages.length, 1);
 });
