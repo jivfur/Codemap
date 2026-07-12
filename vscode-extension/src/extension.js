@@ -9,6 +9,7 @@ const {
   loadSymbolBody,
   searchSymbols,
 } = require("./sqliteBridge");
+const { createCallerCodeLensProvider } = require("./codelens");
 const { createCodemapTreeProvider } = require("./treeView");
 
 const SUPPORTED_EXTENSIONS = new Set([".py", ".js", ".jsx", ".ts", ".tsx"]);
@@ -195,6 +196,22 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         pendingSaveReindex.set(filePath, handle);
       })
     );
+
+    const codeLensProvider = createCallerCodeLensProvider(vscodeApi, root, {
+      listSymbolsForFile: listSymbols,
+      getNeighborsForSymbol: getNeighbors,
+    });
+    register(
+      context.subscriptions,
+      vscodeApi.languages.registerCodeLensProvider(
+        [
+          { language: "python", scheme: "file" },
+          { language: "javascript", scheme: "file" },
+          { language: "typescript", scheme: "file" },
+        ],
+        codeLensProvider
+      )
+    );
   }
 
   register(
@@ -343,6 +360,42 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         vscodeApi.window.showInformationMessage(message);
       } catch (error) {
         vscodeApi.window.showErrorMessage(`Codemap reindex failed: ${error.message}`);
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.showCallersForSymbol", async (symbol, callers) => {
+      const entries = Array.isArray(callers) ? callers : [];
+      if (entries.length === 0) {
+        vscodeApi.window.showInformationMessage(`No callers found for ${symbol}.`);
+        return;
+      }
+
+      const selection = await vscodeApi.window.showQuickPick(
+        entries.map((row) => ({
+          label: row.symbol,
+          description: row.resolved ? "resolved" : "unresolved",
+          symbol: row.symbol,
+          resolved: Boolean(row.resolved),
+        })),
+        { title: `Callers for ${symbol}` }
+      );
+
+      if (!selection) {
+        return;
+      }
+
+      if (!selection.resolved) {
+        vscodeApi.window.showInformationMessage(`Caller ${selection.symbol} is unresolved.`);
+        return;
+      }
+
+      try {
+        await openSymbolLocationByName(selection.symbol);
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "show callers"));
       }
     })
   );
