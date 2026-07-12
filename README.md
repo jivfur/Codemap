@@ -29,3 +29,8 @@ python3 -m unittest discover -s tests -v
 ```
 
 - CI runs the same command for every pull request and on pushes to `main`.
+
+## VS Code Extension Scaffold
+
+- The initial extension scaffold is in `vscode-extension/`.
+- It provides command wiring and a bridge that executes `graph.py` commands from VS Code.

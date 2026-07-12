@@ -1,0 +1,33 @@
+{
+  "name": "codemap-vscode",
+  "displayName": "Codemap",
+  "description": "VS Code scaffold for querying the Codemap SQLite index through graph.py",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./src/extension.js",
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codemap.indexWorkspace",
+        "title": "Codemap: Index Workspace"
+      },
+      {
+        "command": "codemap.searchSymbol",
+        "title": "Codemap: Search Symbol"
+      },
+      {
+        "command": "codemap.showSymbolBody",
+        "title": "Codemap: Show Symbol Body"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}
