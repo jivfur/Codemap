@@ -2,6 +2,9 @@
 
 This document tracks the implementation plan as a sequence of small, reviewable pull requests.
 
+PRD reference:
+- `docs/prd.md`
+
 How to use this file:
 - Update Status as work progresses.
 - Keep PRs focused and independently stable.
@@ -36,7 +39,7 @@ How to use this file:
 | 16 | CodeLens to Impact Webview Flow | feat/vscode-codelens-impact-webview | Merged | Route CodeLens click actions to open the impact webview directly for the selected symbol, preserving click-to-open navigation from the webview. | Unit tests for CodeLens command payloads and openImpactWebview symbol-argument plumbing. | Clicking a CodeLens opens the webview for that symbol without extra prompt friction. | [PR #19](https://github.com/jivfur/Codemap/pull/19) |
 | 17 | Reuse Impact Webview Panel | feat/vscode-impact-webview-reuse | Merged | Reuse a single impact webview panel across repeated command invocations, refreshing title and payload instead of creating duplicates. | Unit tests for panel lifecycle (create once, reveal on reuse, recreate after dispose). | Re-running impact view commands updates one existing panel and preserves open-symbol behavior. | [PR #20](https://github.com/jivfur/Codemap/pull/20) |
 | 18 | Impact Webview SVG Graph Rendering | feat/vscode-impact-webview-svg | Merged | Replace list-style impact rendering with an SVG graph layout (depth-based columns, edge lines, clickable nodes) while keeping current message contract. | Unit tests validating graph payload embed and SVG render markers. | Impact webview shows a visual graph and node clicks still open symbols. | [PR #21](https://github.com/jivfur/Codemap/pull/21) |
-| 19 | Impact Webview Depth Filter | feat/vscode-impact-depth-filter | In Progress | Add a max-depth filter control in the impact webview to narrow rendered nodes/edges without re-querying data. | Unit tests validating depth filter controls and render function wiring in webview HTML. | Users can reduce visual scope to shallow impact layers while preserving node click navigation. | Branch started |
+| 19 | Impact Webview Depth Filter | feat/vscode-impact-depth-filter | Merged | Add a max-depth filter control in the impact webview to narrow rendered nodes/edges without re-querying data. | Unit tests validating depth filter controls and render function wiring in webview HTML. | Users can reduce visual scope to shallow impact layers while preserving node click navigation. | [PR #22](https://github.com/jivfur/Codemap/pull/22) |
 
 ## Suggested Working Rules Per PR
 
@@ -48,5 +51,6 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 19: Impact Webview Depth Filter
-- Branch: feat/vscode-impact-depth-filter
+- No queued PRs.
+- Next work should be added explicitly before starting a new branch.
+- New items should map to scope and success criteria in `docs/prd.md`.

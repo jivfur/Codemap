@@ -358,10 +358,10 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       const symbol = initialSymbol
         ? String(initialSymbol)
         : await vscodeApi.window.showInputBox({
-            title: "Repo Graph: Open Impact Webview",
-            prompt: "Enter qualified or short symbol name",
-            ignoreFocusOut: true,
-          });
+          title: "Repo Graph: Open Impact Webview",
+          prompt: "Enter qualified or short symbol name",
+          ignoreFocusOut: true,
+        });
 
       if (!symbol) {
         return;
@@ -449,7 +449,7 @@ function activate(context) {
   return activateWithApi(vscode, context);
 }
 
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
   activate,
