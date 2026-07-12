@@ -153,3 +153,64 @@ def get_impact(conn: sqlite3.Connection, symbol_query: str) -> dict[str, object]
         "target": dict(target),
         "impacted": impacted,
     }
+
+
+def get_path(conn: sqlite3.Connection, source_query: str, target_query: str) -> dict[str, object] | None:
+    source = resolve_symbol(conn, source_query)
+    target = resolve_symbol(conn, target_query)
+    if not source or not target:
+        return None
+
+    row = conn.execute(
+        """
+        WITH RECURSIVE walk(depth, symbol_id, visited, path_ids) AS (
+            SELECT 0,
+                   ? AS symbol_id,
+                   ',' || CAST(? AS TEXT) || ',' AS visited,
+                   CAST(? AS TEXT) AS path_ids
+
+            UNION ALL
+
+            SELECT w.depth + 1,
+                   e.dst_id,
+                   w.visited || CAST(e.dst_id AS TEXT) || ',',
+                   w.path_ids || ',' || CAST(e.dst_id AS TEXT)
+            FROM walk w
+            JOIN edges e
+              ON e.src_id = w.symbol_id
+             AND e.edge_type = 'calls'
+             AND e.src_type = 'symbol'
+             AND e.dst_type = 'symbol'
+             AND e.resolved = 1
+             AND e.dst_id IS NOT NULL
+            WHERE instr(w.visited, ',' || CAST(e.dst_id AS TEXT) || ',') = 0
+        )
+        SELECT path_ids
+        FROM walk
+        WHERE symbol_id = ?
+        ORDER BY depth
+        LIMIT 1
+        """,
+        (source["id"], source["id"], source["id"], target["id"]),
+    ).fetchone()
+
+    if not row:
+        return {
+            "source": dict(source),
+            "target": dict(target),
+            "path": [],
+        }
+
+    path_ids = [int(part) for part in str(row["path_ids"]).split(",") if part]
+    placeholders = ",".join(["?"] * len(path_ids))
+    symbol_rows = conn.execute(
+        f"SELECT id, qualified_name FROM symbols WHERE id IN ({placeholders})",
+        tuple(path_ids),
+    ).fetchall()
+    id_to_qname = {int(r["id"]): str(r["qualified_name"]) for r in symbol_rows}
+
+    return {
+        "source": dict(source),
+        "target": dict(target),
+        "path": [id_to_qname[sid] for sid in path_ids if sid in id_to_qname],
+    }

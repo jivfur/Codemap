@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from .db import connect_db, init_schema
-from .graph_queries import get_impact, get_neighbors
+from .graph_queries import get_impact, get_neighbors, get_path
 from .index import build_or_update_index
 
 
@@ -162,6 +162,29 @@ def cmd_impact(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def cmd_path(args: argparse.Namespace) -> int:
+    conn = connect_db(_db_path())
+    try:
+        init_schema(conn, _repo_root() / "indexer" / "schema.sql")
+        result = get_path(conn, args.source, args.target)
+        if not result:
+            print("Symbol not found.")
+            return 1
+
+        source = result["source"]["qualified_name"]
+        target = result["target"]["qualified_name"]
+        print(f"# Path from {source} to {target}")
+        if not result["path"]:
+            print("No dependency path found.")
+            return 0
+
+        for symbol in result["path"]:
+            print(f"- {symbol}")
+        return 0
+    finally:
+        conn.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Repo graph index CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -189,6 +212,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_impact = sub.add_parser("impact", help="Show full reverse dependency closure")
     p_impact.add_argument("symbol", help="Qualified or short symbol name")
     p_impact.set_defaults(func=cmd_impact)
+
+    p_path = sub.add_parser("path", help="Show shortest dependency path between two symbols")
+    p_path.add_argument("source", help="Source symbol (qualified or short name)")
+    p_path.add_argument("target", help="Target symbol (qualified or short name)")
+    p_path.set_defaults(func=cmd_path)
 
     return parser
 
