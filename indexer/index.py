@@ -5,7 +5,7 @@ from pathlib import Path
 import sqlite3
 
 from .models import ParsedFile
-from .parser import parse_python_file
+from .parser import detect_language, parse_source_file
 
 IGNORED_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__"}
 
@@ -17,8 +17,12 @@ def hash_file(file_path: Path) -> str:
 
 def iter_supported_files(repo_root: Path) -> list[Path]:
     files: list[Path] = []
-    for path in repo_root.rglob("*.py"):
+    for path in repo_root.rglob("*"):
+        if not path.is_file():
+            continue
         if any(part in IGNORED_DIRS for part in path.parts):
+            continue
+        if detect_language(path) is None:
             continue
         files.append(path)
     return files
@@ -177,7 +181,10 @@ def build_or_update_index(repo_root: Path, db_path: Path, changed_only: bool = F
                 skipped += 1
                 continue
 
-            parsed = parse_python_file(path, repo_root)
+            parsed = parse_source_file(path, repo_root)
+            if parsed is None:
+                skipped += 1
+                continue
             file_id = _upsert_file_row(conn, rel_path, digest, parsed)
             _delete_existing_file_graph(conn, file_id)
             known_files[rel_path] = file_id

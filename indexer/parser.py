@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import ast
 import importlib
+import re
 from pathlib import Path
 from typing import Any
 
 from .models import ParsedCall, ParsedFile, ParsedImport, ParsedSymbol
+
+
+LANGUAGE_BY_EXTENSION: dict[str, str] = {
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+}
 
 
 class PythonGraphVisitor(ast.NodeVisitor):
@@ -252,6 +262,10 @@ def module_name_for_path(file_path: Path, repo_root: Path) -> str:
     return ".".join(without_suffix.parts)
 
 
+def detect_language(file_path: Path) -> str | None:
+    return LANGUAGE_BY_EXTENSION.get(file_path.suffix.lower())
+
+
 def python_parser_backend() -> str:
     try:
         mod = importlib.import_module("tree_sitter_languages")
@@ -309,3 +323,217 @@ def parse_python_file(file_path: Path, repo_root: Path) -> ParsedFile:
             # Keep indexing resilient even if tree-sitter parsing fails for a file.
             return _parse_python_file_with_ast(file_path, repo_root)
     return _parse_python_file_with_ast(file_path, repo_root)
+
+
+def javascript_parser_backend() -> str:
+    try:
+        mod = importlib.import_module("tree_sitter_languages")
+        get_parser = getattr(mod, "get_parser")
+        parser = get_parser("javascript")
+        if parser is not None:
+            return "tree-sitter"
+    except (ImportError, AttributeError, TypeError, ValueError, RuntimeError):
+        pass
+    return "regex-fallback"
+
+
+def _parse_jsts_with_regex(file_path: Path, repo_root: Path, language: str) -> ParsedFile:
+    source = file_path.read_text(encoding="utf-8", errors="replace")
+    lines = source.splitlines()
+    module_name = module_name_for_path(file_path, repo_root)
+
+    symbols: list[ParsedSymbol] = []
+    imports: list[ParsedImport] = []
+    calls: list[ParsedCall] = []
+
+    function_stack: list[tuple[str, int]] = []
+
+    for line_no, line in enumerate(lines, start=1):
+        stripped = line.strip()
+
+        m_import_from = re.match(r"^import\s+.+\s+from\s+['\"]([^'\"]+)['\"]", stripped)
+        if m_import_from:
+            imports.append(ParsedImport(module=m_import_from.group(1)))
+        m_import_bare = re.match(r"^import\s+['\"]([^'\"]+)['\"]", stripped)
+        if m_import_bare:
+            imports.append(ParsedImport(module=m_import_bare.group(1)))
+        m_require = re.search(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)", stripped)
+        if m_require:
+            imports.append(ParsedImport(module=m_require.group(1)))
+
+        m_class = re.match(r"^class\s+([A-Za-z_][A-Za-z0-9_]*)", stripped)
+        if m_class:
+            class_name = m_class.group(1)
+            symbols.append(
+                ParsedSymbol(
+                    kind="class",
+                    name=class_name,
+                    qualified_name=f"{module_name}.{class_name}",
+                    signature=class_name,
+                    doc_summary=None,
+                    start_line=line_no,
+                    end_line=line_no,
+                )
+            )
+
+        m_func = re.match(r"^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)", stripped)
+        if m_func:
+            fn_name = m_func.group(1)
+            sig = f"{fn_name}({m_func.group(2).strip()})"
+            qname = f"{module_name}.{fn_name}"
+            symbols.append(
+                ParsedSymbol(
+                    kind="function",
+                    name=fn_name,
+                    qualified_name=qname,
+                    signature=sig,
+                    doc_summary=None,
+                    start_line=line_no,
+                    end_line=line_no,
+                )
+            )
+            function_stack.append((qname, 0))
+
+        call_names = re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", stripped)
+        if function_stack:
+            caller = function_stack[-1][0]
+            for callee in call_names:
+                if callee in {"if", "for", "while", "switch", "catch", "function"}:
+                    continue
+                calls.append(ParsedCall(caller_qualified_name=caller, callee_name=callee))
+
+    return ParsedFile(
+        language=language,
+        loc=len(lines),
+        symbols=symbols,
+        imports=imports,
+        calls=calls,
+    )
+
+
+def _parse_jsts_with_tree_sitter(file_path: Path, repo_root: Path, language: str) -> ParsedFile:
+    mod = importlib.import_module("tree_sitter_languages")
+    get_parser = getattr(mod, "get_parser")
+
+    parser_language = "javascript" if language == "javascript" else "typescript"
+    source = file_path.read_text(encoding="utf-8", errors="replace")
+    source_bytes = bytes(source, encoding="utf-8")
+    parser = get_parser(parser_language)
+    tree = parser.parse(source_bytes)
+
+    module_name = module_name_for_path(file_path, repo_root)
+    symbols: list[ParsedSymbol] = []
+    imports: list[ParsedImport] = []
+    calls: list[ParsedCall] = []
+    scope_stack: list[tuple[str, str]] = []
+
+    def text(node: Any) -> str:
+        return source_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
+
+    def qname(name: str) -> str:
+        if scope_stack:
+            scope = ".".join([s for s, _ in scope_stack])
+            return f"{module_name}.{scope}.{name}"
+        return f"{module_name}.{name}"
+
+    def caller_scope() -> str | None:
+        if not scope_stack:
+            return None
+        scope = ".".join([s for s, _ in scope_stack])
+        return f"{module_name}.{scope}"
+
+    def walk(node: Any) -> None:
+        if node.type == "import_statement":
+            stmt = text(node)
+            for mod_name in re.findall(r"from\s+['\"]([^'\"]+)['\"]", stmt):
+                imports.append(ParsedImport(module=mod_name))
+            bare = re.findall(r"import\s+['\"]([^'\"]+)['\"]", stmt)
+            for mod_name in bare:
+                imports.append(ParsedImport(module=mod_name))
+
+        if node.type == "call_expression":
+            caller = caller_scope()
+            if caller:
+                fn = node.child_by_field_name("function")
+                if fn:
+                    fn_text = text(fn).strip()
+                    callee = fn_text.split(".")[-1]
+                    if callee:
+                        calls.append(ParsedCall(caller_qualified_name=caller, callee_name=callee))
+
+        if node.type == "class_declaration":
+            name_node = node.child_by_field_name("name")
+            if name_node:
+                name = text(name_node).strip()
+                symbols.append(
+                    ParsedSymbol(
+                        kind="class",
+                        name=name,
+                        qualified_name=qname(name),
+                        signature=name,
+                        doc_summary=None,
+                        start_line=node.start_point[0] + 1,
+                        end_line=node.end_point[0] + 1,
+                    )
+                )
+                scope_stack.append((name, "class"))
+                for child in node.children:
+                    walk(child)
+                scope_stack.pop()
+                return
+
+        if node.type in {"function_declaration", "method_definition"}:
+            name_node = node.child_by_field_name("name")
+            if name_node:
+                name = text(name_node).strip()
+                kind = "method" if node.type == "method_definition" or (scope_stack and scope_stack[-1][1] == "class") else "function"
+                params = node.child_by_field_name("parameters")
+                sig = f"{name}{text(params).strip() if params else '()'}"
+                symbols.append(
+                    ParsedSymbol(
+                        kind=kind,
+                        name=name,
+                        qualified_name=qname(name),
+                        signature=sig,
+                        doc_summary=None,
+                        start_line=node.start_point[0] + 1,
+                        end_line=node.end_point[0] + 1,
+                    )
+                )
+                scope_stack.append((name, "function"))
+                for child in node.children:
+                    walk(child)
+                scope_stack.pop()
+                return
+
+        for child in node.children:
+            walk(child)
+
+    walk(tree.root_node)
+    return ParsedFile(
+        language=language,
+        loc=len(source.splitlines()),
+        symbols=symbols,
+        imports=imports,
+        calls=calls,
+    )
+
+
+def parse_jsts_file(file_path: Path, repo_root: Path, language: str) -> ParsedFile:
+    if javascript_parser_backend() == "tree-sitter":
+        try:
+            return _parse_jsts_with_tree_sitter(file_path, repo_root, language)
+        except (ImportError, AttributeError, TypeError, ValueError, RuntimeError):
+            return _parse_jsts_with_regex(file_path, repo_root, language)
+    return _parse_jsts_with_regex(file_path, repo_root, language)
+
+
+def parse_source_file(file_path: Path, repo_root: Path) -> ParsedFile | None:
+    language = detect_language(file_path)
+    if language is None:
+        return None
+    if language == "python":
+        return parse_python_file(file_path, repo_root)
+    if language in {"javascript", "typescript"}:
+        return parse_jsts_file(file_path, repo_root, language)
+    return None
