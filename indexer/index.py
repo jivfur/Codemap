@@ -159,6 +159,7 @@ def build_or_update_index(repo_root: Path, db_path: Path, changed_only: bool = F
         files = iter_supported_files(repo_root)
         indexed = 0
         skipped = 0
+        changed_file_ids: set[int] = set()
 
         known_files = {
             str(Path(r["path"])): int(r["id"])
@@ -190,6 +191,49 @@ def build_or_update_index(repo_root: Path, db_path: Path, changed_only: bool = F
             known_files[rel_path] = file_id
             _insert_file_graph(conn, file_id, parsed, known_files)
             indexed += 1
+            if changed_only:
+                changed_file_ids.add(file_id)
+
+        if changed_only and changed_file_ids:
+            placeholders = ",".join(["?"] * len(changed_file_ids))
+            importer_rows = conn.execute(
+                f"""
+                SELECT DISTINCT src_id
+                FROM edges
+                WHERE edge_type = 'imports'
+                  AND src_type = 'file'
+                  AND dst_type = 'file'
+                  AND resolved = 1
+                  AND dst_id IN ({placeholders})
+                  AND src_id NOT IN ({placeholders})
+                """,
+                tuple(changed_file_ids) + tuple(changed_file_ids),
+            ).fetchall()
+
+            for row in importer_rows:
+                importer_file_id = int(row["src_id"])
+                importer_file_row = conn.execute(
+                    "SELECT path FROM files WHERE id = ?",
+                    (importer_file_id,),
+                ).fetchone()
+                if not importer_file_row:
+                    continue
+
+                rel_path = str(importer_file_row["path"])
+                abs_path = repo_root / rel_path
+                if not abs_path.exists() or not abs_path.is_file():
+                    continue
+
+                parsed = parse_source_file(abs_path, repo_root)
+                if parsed is None:
+                    continue
+
+                digest = hash_file(abs_path)
+                file_id = _upsert_file_row(conn, rel_path, digest, parsed)
+                _delete_existing_file_graph(conn, file_id)
+                known_files[rel_path] = file_id
+                _insert_file_graph(conn, file_id, parsed, known_files)
+                indexed += 1
 
         resolve_unresolved_calls(conn)
         conn.commit()
