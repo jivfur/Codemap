@@ -14,6 +14,7 @@ function makeFakeVscode() {
   const saveDocumentListeners = [];
   const statusMessages = [];
   const codeLensRegistrations = [];
+  const webviewPanels = [];
 
   const api = {
     Uri: {
@@ -119,6 +120,22 @@ function makeFakeVscode() {
         activeEditorListeners.push(listener);
         return { dispose: () => {} };
       },
+      createWebviewPanel: (viewType, title, viewColumn, options) => {
+        const panel = {
+          viewType,
+          title,
+          viewColumn,
+          options,
+          webview: {
+            html: "",
+            onDidReceiveMessage: (handler) => {
+              panel.onDidReceiveMessage = handler;
+            },
+          },
+        };
+        webviewPanels.push(panel);
+        return panel;
+      },
     },
     ViewColumn: {
       Beside: 2,
@@ -137,6 +154,7 @@ function makeFakeVscode() {
     saveDocumentListeners,
     statusMessages,
     codeLensRegistrations,
+    webviewPanels,
   };
 }
 
@@ -163,6 +181,7 @@ test("activateWithApi registers expected commands", () => {
   assert.ok(fake.registered.has("codemap.showImpact"));
   assert.ok(fake.registered.has("codemap.reindexWorkspace"));
   assert.ok(fake.registered.has("codemap.showCallersForSymbol"));
+  assert.ok(fake.registered.has("codemap.openImpactWebview"));
   assert.equal(fake.treeViews.length, 1);
   assert.equal(fake.codeLensRegistrations.length, 1);
   assert.ok(context.subscriptions.length >= 5);
@@ -382,4 +401,26 @@ test("showCallersForSymbol reports unresolved selection", async () => {
   const cmd = fake.registered.get("codemap.showCallersForSymbol");
   await cmd("pkg.mod.target", [{ symbol: "pkg.mod.unknown", resolved: false }]);
   assert.equal(fake.infoMessages[0], "Caller pkg.mod.unknown is unresolved.");
+});
+
+test("openImpactWebview creates panel and opens message symbol", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getImpactForSymbol: async () => ({
+      target: "pkg.mod.target",
+      impacted: [{ symbol: "pkg.mod.a", depth: 1, resolved: true }],
+    }),
+    findSymbolLocation: async () => ({ path: "pkg/mod.py", start: 1, end: 1 }),
+  });
+
+  await fake.registered.get("codemap.openImpactWebview")();
+  assert.equal(fake.webviewPanels.length, 1);
+  assert.ok(fake.webviewPanels[0].webview.html.includes("pkg.mod.target"));
+
+  await fake.webviewPanels[0].onDidReceiveMessage({ command: "openSymbol", symbol: "pkg.mod.a" });
+  assert.equal(fake.documents[0].uri.fsPath, "/tmp/repo/pkg/mod.py");
 });

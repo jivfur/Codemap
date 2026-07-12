@@ -10,6 +10,7 @@ const {
   searchSymbols,
 } = require("./sqliteBridge");
 const { createCallerCodeLensProvider } = require("./codelens");
+const { buildImpactGraphData, openImpactWebviewPanel } = require("./impactWebview");
 const { createCodemapTreeProvider } = require("./treeView");
 
 const SUPPORTED_EXTENSIONS = new Set([".py", ".js", ".jsx", ".ts", ".tsx"]);
@@ -347,6 +348,42 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
   register(
     context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.openImpactWebview", async () => {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
+        vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+        return;
+      }
+
+      const symbol = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Open Impact Webview",
+        prompt: "Enter qualified or short symbol name",
+        ignoreFocusOut: true,
+      });
+
+      if (!symbol) {
+        return;
+      }
+
+      try {
+        const impact = await impactWithSqlite(currentRoot, symbol);
+        if (!impact) {
+          vscodeApi.window.showInformationMessage("Symbol not found.");
+          return;
+        }
+
+        const graphData = buildImpactGraphData(impact);
+        openImpactWebviewPanel(vscodeApi, graphData, async (selectedSymbol) => {
+          await openSymbolLocationByName(selectedSymbol);
+        });
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "impact webview"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
     vscodeApi.commands.registerCommand("codemap.reindexWorkspace", async () => {
       const currentRoot = getWorkspaceRoot(vscodeApi);
       if (!currentRoot) {
@@ -417,4 +454,5 @@ module.exports = {
   deactivate,
   activateWithApi,
   isSupportedSavedDocument,
+  formatImpactMarkdown,
 };

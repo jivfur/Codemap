@@ -43,6 +43,10 @@
       {
         "command": "codemap.showCallersForSymbol",
         "title": "Codemap: Show Callers For Symbol"
+      },
+      {
+        "command": "codemap.openImpactWebview",
+        "title": "Repo Graph: Open Impact Webview"
       }
     ],
     "views": {
