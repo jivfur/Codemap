@@ -23,8 +23,8 @@ How to use this file:
 | 3 | Ranking Command | feat/pagerank-command | Merged | Add `rank [--top N]` command over call graph. Use optional `networkx` if available. | Unit tests with fixture graph to validate stable ordering. | All tests pass. Command degrades gracefully if ranking dependency is absent. | [PR #4](https://github.com/jivfur/Codemap/pull/4) |
 | 4 | Python Tree-sitter Parser | feat/python-tree-sitter-parser | Merged | Replace Python AST-based extraction with tree-sitter query-based extraction. Add query file for Python under `indexer/queries/`. | Unit tests for symbol, import, call extraction parity with current behavior. | All tests pass. Index output remains deterministic for fixture repo. | [PR #5](https://github.com/jivfur/Codemap/pull/5) |
 | 5 | JavaScript and TypeScript Parsing | feat/js-ts-parser-support | Merged | Add JS/TS language detection and tree-sitter queries. Include symbols/imports/calls extraction for JS/TS files. | Unit tests using JS and TS fixture files for indexing and command queries. | All tests pass. Mixed-language indexing works without breaking Python behavior. | [PR #6](https://github.com/jivfur/Codemap/pull/6) |
-| 6 | Incremental Dependent Re-resolution | feat/incremental-reresolution | In Progress | Improve `index --changed-only` to re-resolve impacted cross-file edges in importers of changed files. | Unit tests proving importer edges are refreshed when a dependency changes. | All tests pass. Changed-only flow updates related edges correctly. | Branch started |
-| 7 | Inheritance Edges | feat/inherits-edges | Planned | Add extraction and storage of `inherits` edges for class hierarchies. | Unit tests for single and multi-level inheritance mapping. | All tests pass. Existing commands continue to behave correctly. | |
+| 6 | Incremental Dependent Re-resolution | feat/incremental-reresolution | Merged | Improve `index --changed-only` to re-resolve impacted cross-file edges in importers of changed files. | Unit tests proving importer edges are refreshed when a dependency changes. | All tests pass. Changed-only flow updates related edges correctly. | [PR #7](https://github.com/jivfur/Codemap/pull/7) |
+| 7 | Inheritance Edges | feat/inherits-edges | In Progress | Add extraction and storage of `inherits` edges for class hierarchies. | Unit tests for single and multi-level inheritance mapping. | All tests pass. Existing commands continue to behave correctly. | Branch started |
 | 8 | Test and CI Baseline | chore/test-ci-baseline | Planned | Add test runner config, baseline fixtures, and CI workflow to run tests on PRs. | CI runs full suite on push and PR. | CI green on default branch. Local instructions documented. | |
 | 9 | VS Code Extension Scaffold | feat/vscode-extension-scaffold | Planned | Scaffold extension package with commands and basic integration points to query SQLite index. | Unit tests for extension command wiring where practical. | Extension activates, commands execute, and index query bridge is functional. | |
 
@@ -38,5 +38,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 6: Incremental Dependent Re-resolution
-- Branch: feat/incremental-reresolution
+- PR 7: Inheritance Edges
+- Branch: feat/inherits-edges

@@ -127,10 +127,25 @@ def _insert_file_graph(
             (src_id, call.callee_name),
         )
 
+    for inher in parsed.inherits:
+        child_id = qname_to_id.get(inher.child_qualified_name)
+        if not child_id:
+            continue
+        conn.execute(
+            "INSERT INTO edges(src_id, src_type, dst_id, dst_type, dst_name, edge_type, resolved) VALUES (?, 'symbol', NULL, 'symbol', ?, 'inherits', 0)",
+            (child_id, inher.base_name),
+        )
 
-def resolve_unresolved_calls(conn: sqlite3.Connection) -> None:
+
+def resolve_unresolved_symbol_edges(conn: sqlite3.Connection) -> None:
     rows = conn.execute(
-        "SELECT id, dst_name FROM edges WHERE edge_type = 'calls' AND resolved = 0 AND dst_name IS NOT NULL"
+        """
+        SELECT id, dst_name
+        FROM edges
+        WHERE edge_type IN ('calls', 'inherits')
+          AND resolved = 0
+          AND dst_name IS NOT NULL
+        """
     ).fetchall()
     for row in rows:
         callee = row["dst_name"]
@@ -235,7 +250,7 @@ def build_or_update_index(repo_root: Path, db_path: Path, changed_only: bool = F
                 _insert_file_graph(conn, file_id, parsed, known_files)
                 indexed += 1
 
-        resolve_unresolved_calls(conn)
+        resolve_unresolved_symbol_edges(conn)
         conn.commit()
         return {"indexed": indexed, "skipped": skipped, "total": len(files)}
     finally:
