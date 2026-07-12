@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { activateWithApi, isSupportedSavedDocument } = require("../src/extension");
+const { __resetImpactWebviewPanelForTests } = require("../src/impactWebview");
 
 function makeFakeVscode() {
   const registered = new Map();
@@ -126,6 +127,8 @@ function makeFakeVscode() {
           title,
           viewColumn,
           options,
+          reveal: () => {},
+          onDidDispose: () => {},
           webview: {
             html: "",
             onDidReceiveMessage: (handler) => {
@@ -404,6 +407,7 @@ test("showCallersForSymbol reports unresolved selection", async () => {
 });
 
 test("openImpactWebview creates panel and opens message symbol", async () => {
+  __resetImpactWebviewPanelForTests();
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
   fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
@@ -426,6 +430,7 @@ test("openImpactWebview creates panel and opens message symbol", async () => {
 });
 
 test("openImpactWebview accepts direct symbol argument", async () => {
+  __resetImpactWebviewPanelForTests();
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
   fake.api.window.showInputBox = async () => {

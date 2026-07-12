@@ -12,6 +12,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Repo Graph: Show Impact` renders a structured reverse-dependency report for a symbol.
 - `Repo Graph: Reindex Workspace` runs a changed-only index refresh from the command palette.
 - `Repo Graph: Open Impact Webview` opens a lightweight impact graph panel with clickable nodes.
+- Re-running impact webview commands reuses the same panel and refreshes its graph.
 
 ## On-Save Reindex
 

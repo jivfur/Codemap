@@ -1,7 +1,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildImpactGraphData, openImpactWebviewPanel, renderImpactWebviewHtml } = require("../src/impactWebview");
+const {
+  __resetImpactWebviewPanelForTests,
+  buildImpactGraphData,
+  openImpactWebviewPanel,
+  renderImpactWebviewHtml,
+} = require("../src/impactWebview");
 
 test("buildImpactGraphData creates nodes and edges", () => {
   const graph = buildImpactGraphData({
@@ -30,26 +35,50 @@ test("renderImpactWebviewHtml embeds target and script payload", () => {
 });
 
 test("openImpactWebviewPanel handles openSymbol messages", async () => {
+  __resetImpactWebviewPanelForTests();
   let messageHandler = null;
+  let disposeHandler = null;
   const opens = [];
+  let createCount = 0;
+  let revealCount = 0;
+
+  const panel = {
+    title: "",
+    reveal: () => {
+      revealCount += 1;
+    },
+    onDidDispose: (handler) => {
+      disposeHandler = handler;
+    },
+    webview: {
+      html: "",
+      onDidReceiveMessage: (handler) => {
+        messageHandler = handler;
+      },
+    },
+  };
 
   const fakeVscode = {
     ViewColumn: { Beside: 2 },
     window: {
-      createWebviewPanel: () => ({
-        webview: {
-          html: "",
-          onDidReceiveMessage: (handler) => {
-            messageHandler = handler;
-          },
-        },
-      }),
+      createWebviewPanel: () => {
+        createCount += 1;
+        return panel;
+      },
     },
   };
 
-  openImpactWebviewPanel(
+  const first = openImpactWebviewPanel(
     fakeVscode,
     { target: "pkg.mod.t", nodes: [], edges: [] },
+    async (symbol) => {
+      opens.push(symbol);
+    }
+  );
+
+  const second = openImpactWebviewPanel(
+    fakeVscode,
+    { target: "pkg.mod.u", nodes: [], edges: [] },
     async (symbol) => {
       opens.push(symbol);
     }
@@ -58,5 +87,18 @@ test("openImpactWebviewPanel handles openSymbol messages", async () => {
   await messageHandler({ command: "openSymbol", symbol: "pkg.mod.a" });
   await messageHandler({ command: "noop" });
 
+  assert.equal(first, second);
+  assert.equal(createCount, 1);
+  assert.equal(revealCount, 1);
+  assert.equal(panel.title, "Codemap Impact: pkg.mod.u");
   assert.deepEqual(opens, ["pkg.mod.a"]);
+
+  disposeHandler();
+
+  openImpactWebviewPanel(
+    fakeVscode,
+    { target: "pkg.mod.v", nodes: [], edges: [] },
+    async () => {}
+  );
+  assert.equal(createCount, 2);
 });

@@ -33,7 +33,8 @@ How to use this file:
 | 13 | On-Save Changed-Only Reindex | feat/vscode-onsave-reindex | Merged | Hook `workspace.onDidSaveTextDocument` to trigger background `index --changed-only` refresh and lightweight status notifications. | Unit tests for save event filtering/debouncing and invocation arguments. | Reindex triggers only for supported files and does not block editor UX. | [PR #16](https://github.com/jivfur/Codemap/pull/16) |
 | 14 | CodeLens Caller Counts | feat/vscode-codelens-callers | Merged | Add CodeLens annotations (`Called from N places`) above function/method symbols backed by graph queries. | Unit tests for lens provider counts and command payloads. | CodeLens appears deterministically and navigates to callers list. | [PR #17](https://github.com/jivfur/Codemap/pull/17) |
 | 15 | Impact Webview MVP | feat/vscode-impact-webview | Merged | Add a simple webview subgraph explorer centered on a symbol impact query (nodes + edges + click-to-open). | Unit tests for webview message contracts and command plumbing. | Webview launches from command and renders consistent impact graph data. | [PR #18](https://github.com/jivfur/Codemap/pull/18) |
-| 16 | CodeLens to Impact Webview Flow | feat/vscode-codelens-impact-webview | In Progress | Route CodeLens click actions to open the impact webview directly for the selected symbol, preserving click-to-open navigation from the webview. | Unit tests for CodeLens command payloads and openImpactWebview symbol-argument plumbing. | Clicking a CodeLens opens the webview for that symbol without extra prompt friction. | Branch started |
+| 16 | CodeLens to Impact Webview Flow | feat/vscode-codelens-impact-webview | Merged | Route CodeLens click actions to open the impact webview directly for the selected symbol, preserving click-to-open navigation from the webview. | Unit tests for CodeLens command payloads and openImpactWebview symbol-argument plumbing. | Clicking a CodeLens opens the webview for that symbol without extra prompt friction. | [PR #19](https://github.com/jivfur/Codemap/pull/19) |
+| 17 | Reuse Impact Webview Panel | feat/vscode-impact-webview-reuse | In Progress | Reuse a single impact webview panel across repeated command invocations, refreshing title and payload instead of creating duplicates. | Unit tests for panel lifecycle (create once, reveal on reuse, recreate after dispose). | Re-running impact view commands updates one existing panel and preserves open-symbol behavior. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -45,5 +46,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 16: CodeLens to Impact Webview Flow
-- Branch: feat/vscode-codelens-impact-webview
+- PR 17: Reuse Impact Webview Panel
+- Branch: feat/vscode-impact-webview-reuse

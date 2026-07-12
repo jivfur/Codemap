@@ -1,3 +1,9 @@
+let impactPanel = null;
+
+function __resetImpactWebviewPanelForTests() {
+  impactPanel = null;
+}
+
 function buildImpactGraphData(impactResult) {
   const target = String(impactResult?.target || "");
   const impacted = Array.isArray(impactResult?.impacted) ? impactResult.impacted : [];
@@ -82,25 +88,35 @@ function renderImpactWebviewHtml(graphData) {
 }
 
 function openImpactWebviewPanel(vscodeApi, graphData, onOpenSymbol) {
-  const panel = vscodeApi.window.createWebviewPanel(
-    'codemapImpact',
-    `Codemap Impact: ${graphData.target}`,
-    vscodeApi.ViewColumn.Beside,
-    { enableScripts: true }
-  );
+  if (!impactPanel) {
+    impactPanel = vscodeApi.window.createWebviewPanel(
+      'codemapImpact',
+      `Codemap Impact: ${graphData.target}`,
+      vscodeApi.ViewColumn.Beside,
+      { enableScripts: true }
+    );
 
-  panel.webview.html = renderImpactWebviewHtml(graphData);
-  panel.webview.onDidReceiveMessage(async (message) => {
-    if (!message || message.command !== 'openSymbol' || typeof message.symbol !== 'string') {
-      return;
-    }
-    await onOpenSymbol(message.symbol);
-  });
+    impactPanel.onDidDispose(() => {
+      impactPanel = null;
+    });
 
-  return panel;
+    impactPanel.webview.onDidReceiveMessage(async (message) => {
+      if (!message || message.command !== 'openSymbol' || typeof message.symbol !== 'string') {
+        return;
+      }
+      await onOpenSymbol(message.symbol);
+    });
+  } else {
+    impactPanel.reveal(vscodeApi.ViewColumn.Beside, true);
+  }
+
+  impactPanel.title = `Codemap Impact: ${graphData.target}`;
+  impactPanel.webview.html = renderImpactWebviewHtml(graphData);
+  return impactPanel;
 }
 
 module.exports = {
+  __resetImpactWebviewPanelForTests,
   buildImpactGraphData,
   renderImpactWebviewHtml,
   openImpactWebviewPanel,
