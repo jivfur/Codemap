@@ -163,10 +163,107 @@ async function loadSymbolBody(workspaceRoot, symbol, options = {}) {
   };
 }
 
+async function findSymbolLocation(workspaceRoot, symbol, options = {}) {
+  const rows = await queryRows(
+    workspaceRoot,
+    `
+    SELECT s.qualified_name AS qualified_name, s.start_line AS start_line, s.end_line AS end_line, f.path AS path
+    FROM symbols s
+    JOIN files f ON f.id = s.file_id
+    WHERE s.qualified_name = ? OR s.name = ?
+    ORDER BY CASE WHEN s.qualified_name = ? THEN 0 ELSE 1 END, s.id
+    LIMIT 1
+    `,
+    [symbol, symbol, symbol],
+    options
+  );
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const row = rows[0];
+  return {
+    qualifiedName: row.qualified_name,
+    path: String(row.path || ""),
+    start: Number(row.start_line || 1),
+    end: Number(row.end_line || row.start_line || 1),
+  };
+}
+
+async function listSymbolsForFile(workspaceRoot, relativePath, options = {}) {
+  const rows = await queryRows(
+    workspaceRoot,
+    `
+    SELECT s.kind AS kind, s.qualified_name AS qualified_name, s.start_line AS start_line
+    FROM symbols s
+    JOIN files f ON f.id = s.file_id
+    WHERE f.path = ?
+    ORDER BY s.start_line, s.id
+    `,
+    [relativePath],
+    options
+  );
+
+  return rows.map((row) => ({
+    kind: row.kind || "symbol",
+    qualifiedName: row.qualified_name || "",
+    start: Number(row.start_line || 1),
+  }));
+}
+
+async function getNeighborsForSymbol(workspaceRoot, symbol, options = {}) {
+  const target = await findSymbolLocation(workspaceRoot, symbol, options);
+  if (!target) {
+    return { callers: [], callees: [] };
+  }
+
+  const callers = await queryRows(
+    workspaceRoot,
+    `
+    SELECT COALESCE(src.qualified_name, e.dst_name, e.src_id) AS symbol, e.resolved AS resolved
+    FROM edges e
+    LEFT JOIN symbols src ON src.id = e.src_id
+    LEFT JOIN symbols dst ON dst.id = e.dst_id
+    WHERE e.edge_type = 'calls'
+      AND (
+        (e.resolved = 1 AND dst.qualified_name = ?)
+        OR (e.resolved = 0 AND e.dst_name = ?)
+      )
+    ORDER BY symbol
+    `,
+    [target.qualifiedName, target.qualifiedName],
+    options
+  );
+
+  const callees = await queryRows(
+    workspaceRoot,
+    `
+    SELECT COALESCE(dst.qualified_name, e.dst_name) AS symbol, e.resolved AS resolved
+    FROM edges e
+    JOIN symbols src ON src.id = e.src_id
+    LEFT JOIN symbols dst ON dst.id = e.dst_id
+    WHERE e.edge_type = 'calls'
+      AND src.qualified_name = ?
+    ORDER BY symbol
+    `,
+    [target.qualifiedName],
+    options
+  );
+
+  return {
+    callers: callers.map((row) => ({ symbol: row.symbol || "", resolved: Number(row.resolved || 0) === 1 })),
+    callees: callees.map((row) => ({ symbol: row.symbol || "", resolved: Number(row.resolved || 0) === 1 })),
+  };
+}
+
 module.exports = {
   SqliteBridgeError,
   bindParams,
   queryRows,
   searchSymbols,
   loadSymbolBody,
+  findSymbolLocation,
+  listSymbolsForFile,
+  getNeighborsForSymbol,
 };

@@ -1,6 +1,14 @@
 const path = require("node:path");
 const { runGraphCommand } = require("./bridge");
-const { SqliteBridgeError, loadSymbolBody, searchSymbols } = require("./sqliteBridge");
+const {
+  SqliteBridgeError,
+  findSymbolLocation,
+  getNeighborsForSymbol,
+  listSymbolsForFile,
+  loadSymbolBody,
+  searchSymbols,
+} = require("./sqliteBridge");
+const { createCodemapTreeProvider } = require("./treeView");
 
 function getWorkspaceRoot(vscodeApi) {
   const folders = vscodeApi.workspace.workspaceFolders;
@@ -25,6 +33,34 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const runCommand = deps.runGraphCommand || runGraphCommand;
   const searchWithSqlite = deps.searchSymbols || searchSymbols;
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
+  const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
+  const listSymbols = deps.listSymbolsForFile || listSymbolsForFile;
+  const getNeighbors = deps.getNeighborsForSymbol || getNeighborsForSymbol;
+
+  const root = getWorkspaceRoot(vscodeApi);
+  if (root) {
+    const provider = createCodemapTreeProvider(vscodeApi, root, {
+      listSymbolsForFile: listSymbols,
+      getNeighborsForSymbol: getNeighbors,
+    });
+    const treeView = vscodeApi.window.createTreeView("codemap.neighborsView", {
+      treeDataProvider: provider,
+      showCollapseAll: true,
+    });
+    register(context.subscriptions, treeView);
+    register(
+      context.subscriptions,
+      vscodeApi.window.onDidChangeActiveTextEditor(() => {
+        provider.refresh();
+      })
+    );
+    register(
+      context.subscriptions,
+      vscodeApi.commands.registerCommand("codemap.refreshNeighbors", () => {
+        provider.refresh();
+      })
+    );
+  }
 
   register(
     context.subscriptions,
@@ -91,8 +127,8 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   register(
     context.subscriptions,
     vscodeApi.commands.registerCommand("codemap.showSymbolBody", async () => {
-      const root = getWorkspaceRoot(vscodeApi);
-      if (!root) {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
         vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
         return;
       }
@@ -108,7 +144,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       }
 
       try {
-        const result = await loadBodyWithSqlite(root, symbol);
+        const result = await loadBodyWithSqlite(currentRoot, symbol);
         if (!result) {
           vscodeApi.window.showInformationMessage("Symbol not found.");
           return;
@@ -123,6 +159,44 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         });
       } catch (error) {
         vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "body"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.openSymbolLocation", async (symbol) => {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
+        vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+        return;
+      }
+      if (!symbol) {
+        return;
+      }
+
+      try {
+        const location = await findLocationWithSqlite(currentRoot, symbol);
+        if (!location) {
+          vscodeApi.window.showInformationMessage("Symbol not found.");
+          return;
+        }
+
+        const uri = vscodeApi.Uri.file(path.join(currentRoot, location.path));
+        const document = await vscodeApi.workspace.openTextDocument(uri);
+        const editor = await vscodeApi.window.showTextDocument(document, {
+          preview: true,
+        });
+
+        const startLine = Math.max(0, Number(location.start || 1) - 1);
+        const endLine = Math.max(startLine, Number(location.end || location.start || 1) - 1);
+        const startPos = new vscodeApi.Position(startLine, 0);
+        const endPos = new vscodeApi.Position(endLine, Number.MAX_SAFE_INTEGER);
+        const range = new vscodeApi.Range(startPos, endPos);
+        editor.selection = new vscodeApi.Selection(startPos, startPos);
+        editor.revealRange(range, vscodeApi.TextEditorRevealType.InCenter);
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "open symbol"));
       }
     })
   );
