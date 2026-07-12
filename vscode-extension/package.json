@@ -27,6 +27,18 @@
       {
         "command": "codemap.refreshNeighbors",
         "title": "Codemap: Refresh Neighbors"
+      },
+      {
+        "command": "codemap.findSymbol",
+        "title": "Repo Graph: Find Symbol"
+      },
+      {
+        "command": "codemap.showImpact",
+        "title": "Repo Graph: Show Impact"
+      },
+      {
+        "command": "codemap.reindexWorkspace",
+        "title": "Repo Graph: Reindex Workspace"
       }
     ],
     "views": {

@@ -3,6 +3,7 @@ const { runGraphCommand } = require("./bridge");
 const {
   SqliteBridgeError,
   findSymbolLocation,
+  getImpactForSymbol,
   getNeighborsForSymbol,
   listSymbolsForFile,
   loadSymbolBody,
@@ -29,13 +30,96 @@ function sqliteErrorMessage(error, context) {
   return `Codemap ${context} failed: ${error.message}`;
 }
 
+function formatImpactMarkdown(result) {
+  const lines = [`# Impact for ${result.target}`];
+  if (!Array.isArray(result.impacted) || result.impacted.length === 0) {
+    lines.push("No callers found.");
+    return lines;
+  }
+  lines.push("| Depth | Symbol | Resolution |");
+  lines.push("|---|---|---|");
+  for (const row of result.impacted) {
+    lines.push(`| ${row.depth} | ${row.symbol} | ${row.resolved ? "resolved" : "unresolved"} |`);
+  }
+  return lines;
+}
+
 function activateWithApi(vscodeApi, context, deps = {}) {
   const runCommand = deps.runGraphCommand || runGraphCommand;
   const searchWithSqlite = deps.searchSymbols || searchSymbols;
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
   const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
+  const impactWithSqlite = deps.getImpactForSymbol || getImpactForSymbol;
   const listSymbols = deps.listSymbolsForFile || listSymbolsForFile;
   const getNeighbors = deps.getNeighborsForSymbol || getNeighborsForSymbol;
+
+  async function openSymbolLocationByName(symbol) {
+    const currentRoot = getWorkspaceRoot(vscodeApi);
+    if (!currentRoot) {
+      vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+      return;
+    }
+    if (!symbol) {
+      return;
+    }
+
+    const location = await findLocationWithSqlite(currentRoot, symbol);
+    if (!location) {
+      vscodeApi.window.showInformationMessage("Symbol not found.");
+      return;
+    }
+
+    const uri = vscodeApi.Uri.file(path.join(currentRoot, location.path));
+    const document = await vscodeApi.workspace.openTextDocument(uri);
+    const editor = await vscodeApi.window.showTextDocument(document, {
+      preview: true,
+    });
+
+    const startLine = Math.max(0, Number(location.start || 1) - 1);
+    const endLine = Math.max(startLine, Number(location.end || location.start || 1) - 1);
+    const startPos = new vscodeApi.Position(startLine, 0);
+    const endPos = new vscodeApi.Position(endLine, Number.MAX_SAFE_INTEGER);
+    const range = new vscodeApi.Range(startPos, endPos);
+    editor.selection = new vscodeApi.Selection(startPos, startPos);
+    editor.revealRange(range, vscodeApi.TextEditorRevealType.InCenter);
+  }
+
+  async function runFindSymbolFlow(queryTitle, queryPrompt) {
+    const currentRoot = getWorkspaceRoot(vscodeApi);
+    if (!currentRoot) {
+      vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+      return;
+    }
+
+    const query = await vscodeApi.window.showInputBox({
+      title: queryTitle,
+      prompt: queryPrompt,
+      ignoreFocusOut: true,
+    });
+
+    if (!query) {
+      return;
+    }
+
+    const rows = await searchWithSqlite(currentRoot, query);
+    if (rows.length === 0) {
+      vscodeApi.window.showInformationMessage("No symbol matches.");
+      return;
+    }
+
+    const selection = await vscodeApi.window.showQuickPick(
+      rows.map((row) => ({
+        label: `${row.qualifiedName} (${row.path})`,
+        description: row.kind,
+        symbol: row.qualifiedName,
+      })),
+      { title: "Codemap Results" }
+    );
+
+    if (selection?.symbol) {
+      await openSymbolLocationByName(selection.symbol);
+    }
+  }
 
   const root = getWorkspaceRoot(vscodeApi);
   if (root) {
@@ -65,14 +149,14 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   register(
     context.subscriptions,
     vscodeApi.commands.registerCommand("codemap.indexWorkspace", async () => {
-      const root = getWorkspaceRoot(vscodeApi);
-      if (!root) {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
         vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
         return;
       }
 
       try {
-        const result = await runCommand(root, ["index"]);
+        const result = await runCommand(currentRoot, ["index"]);
         const message = result.lines[0] || "Codemap index updated.";
         vscodeApi.window.showInformationMessage(message);
       } catch (error) {
@@ -84,42 +168,21 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   register(
     context.subscriptions,
     vscodeApi.commands.registerCommand("codemap.searchSymbol", async () => {
-      const root = getWorkspaceRoot(vscodeApi);
-      if (!root) {
-        vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
-        return;
-      }
-
-      const query = await vscodeApi.window.showInputBox({
-        title: "Codemap Search",
-        prompt: "Enter symbol or text to search in index",
-        ignoreFocusOut: true,
-      });
-
-      if (!query) {
-        return;
-      }
-
       try {
-        const rows = await searchWithSqlite(root, query);
-        if (rows.length === 0) {
-          vscodeApi.window.showInformationMessage("No symbol matches.");
-          return;
-        }
-
-        const selection = await vscodeApi.window.showQuickPick(
-          rows.map((row) => ({
-            label: `${row.qualifiedName} (${row.path})`,
-            description: row.kind,
-          })),
-          { title: "Codemap Results" }
-        );
-
-        if (selection) {
-          vscodeApi.window.showInformationMessage(`Selected: ${selection.label}`);
-        }
+        await runFindSymbolFlow("Codemap Search", "Enter symbol or text to search in index");
       } catch (error) {
         vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "search"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.findSymbol", async () => {
+      try {
+        await runFindSymbolFlow("Repo Graph: Find Symbol", "Search by name, qualified name, or docs");
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "find symbol"));
       }
     })
   );
@@ -166,37 +229,69 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   register(
     context.subscriptions,
     vscodeApi.commands.registerCommand("codemap.openSymbolLocation", async (symbol) => {
+      try {
+        await openSymbolLocationByName(symbol);
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "open symbol"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.showImpact", async () => {
       const currentRoot = getWorkspaceRoot(vscodeApi);
       if (!currentRoot) {
         vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
         return;
       }
+
+      const symbol = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Show Impact",
+        prompt: "Enter qualified or short symbol name",
+        ignoreFocusOut: true,
+      });
+
       if (!symbol) {
         return;
       }
 
       try {
-        const location = await findLocationWithSqlite(currentRoot, symbol);
-        if (!location) {
+        const impact = await impactWithSqlite(currentRoot, symbol);
+        if (!impact) {
           vscodeApi.window.showInformationMessage("Symbol not found.");
           return;
         }
 
-        const uri = vscodeApi.Uri.file(path.join(currentRoot, location.path));
-        const document = await vscodeApi.workspace.openTextDocument(uri);
-        const editor = await vscodeApi.window.showTextDocument(document, {
-          preview: true,
+        const doc = await vscodeApi.workspace.openTextDocument({
+          language: "markdown",
+          content: formatImpactMarkdown(impact).join("\n"),
         });
-
-        const startLine = Math.max(0, Number(location.start || 1) - 1);
-        const endLine = Math.max(startLine, Number(location.end || location.start || 1) - 1);
-        const startPos = new vscodeApi.Position(startLine, 0);
-        const endPos = new vscodeApi.Position(endLine, Number.MAX_SAFE_INTEGER);
-        const range = new vscodeApi.Range(startPos, endPos);
-        editor.selection = new vscodeApi.Selection(startPos, startPos);
-        editor.revealRange(range, vscodeApi.TextEditorRevealType.InCenter);
+        await vscodeApi.window.showTextDocument(doc, {
+          preview: true,
+          viewColumn: vscodeApi.ViewColumn.Beside,
+        });
       } catch (error) {
-        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "open symbol"));
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "impact"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.reindexWorkspace", async () => {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
+        vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+        return;
+      }
+
+      try {
+        const result = await runCommand(currentRoot, ["index", "--changed-only"]);
+        const message = result.lines[0] || "Codemap reindex complete.";
+        vscodeApi.window.showInformationMessage(message);
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(`Codemap reindex failed: ${error.message}`);
       }
     })
   );

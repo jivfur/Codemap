@@ -127,6 +127,9 @@ test("activateWithApi registers expected commands", () => {
   assert.ok(fake.registered.has("codemap.showSymbolBody"));
   assert.ok(fake.registered.has("codemap.openSymbolLocation"));
   assert.ok(fake.registered.has("codemap.refreshNeighbors"));
+  assert.ok(fake.registered.has("codemap.findSymbol"));
+  assert.ok(fake.registered.has("codemap.showImpact"));
+  assert.ok(fake.registered.has("codemap.reindexWorkspace"));
   assert.equal(fake.treeViews.length, 1);
   assert.ok(context.subscriptions.length >= 5);
 });
@@ -148,17 +151,20 @@ test("index command reports first output line", async () => {
 test("search command uses sqlite rows", async () => {
   const fake = makeFakeVscode();
   fake.api.window.showQuickPick = async (items) => items[0] || null;
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
   const context = { subscriptions: [] };
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: [] }),
     searchSymbols: async () => [{ kind: "function", qualifiedName: "pkg.mod.run", path: "pkg/mod.py" }],
+    findSymbolLocation: async () => ({ path: "pkg/mod.py", start: 1, end: 1 }),
   });
 
   const cmd = fake.registered.get("codemap.searchSymbol");
   await cmd();
 
-  assert.equal(fake.infoMessages[0], "Selected: pkg.mod.run (pkg/mod.py)");
+  assert.equal(fake.documents.length, 1);
+  assert.equal(fake.documents[0].uri.fsPath, "/tmp/repo/pkg/mod.py");
 });
 
 test("showSymbolBody renders sqlite-backed body", async () => {
@@ -216,4 +222,57 @@ test("active editor change triggers tree refresh", async () => {
 
   fake.activeEditorListeners[0]();
   assert.equal(refreshCount, 1);
+});
+
+test("find symbol command prompts and opens selection", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  fake.api.window.showQuickPick = async (items) => items[0] || null;
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    searchSymbols: async () => [{ kind: "function", qualifiedName: "pkg.mod.findme", path: "pkg/mod.py" }],
+    findSymbolLocation: async () => ({ path: "pkg/mod.py", start: 3, end: 5 }),
+  });
+
+  await fake.registered.get("codemap.findSymbol")();
+  assert.equal(fake.documents[0].uri.fsPath, "/tmp/repo/pkg/mod.py");
+});
+
+test("show impact command renders markdown output", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getImpactForSymbol: async () => ({
+      target: "pkg.mod.run",
+      impacted: [
+        { symbol: "pkg.mod.caller", depth: 1, resolved: true },
+        { symbol: "pkg.mod.indirect", depth: 2, resolved: false },
+      ],
+    }),
+  });
+
+  await fake.registered.get("codemap.showImpact")();
+  assert.equal(fake.documents.length, 1);
+  assert.ok(fake.documents[0].content.includes("Impact for pkg.mod.run"));
+  assert.ok(fake.documents[0].content.includes("pkg.mod.caller"));
+});
+
+test("reindex workspace command uses changed-only mode", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  const calls = [];
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async (cwd, args) => {
+      calls.push({ cwd, args });
+      return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
+    },
+  });
+
+  await fake.registered.get("codemap.reindexWorkspace")();
+  assert.deepEqual(calls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
 });
