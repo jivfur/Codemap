@@ -257,6 +257,68 @@ async function getNeighborsForSymbol(workspaceRoot, symbol, options = {}) {
   };
 }
 
+async function getImpactForSymbol(workspaceRoot, symbol, options = {}) {
+  const targetResolver =
+    options.targetResolver ||
+    (async (name) => {
+      return findSymbolLocation(workspaceRoot, name, options);
+    });
+  const neighborsResolver =
+    options.neighborsResolver ||
+    (async (name) => {
+      return getNeighborsForSymbol(workspaceRoot, name, options);
+    });
+
+  const target = await targetResolver(symbol);
+  if (!target) {
+    return null;
+  }
+
+  const maxDepth = Number(options.maxDepth || 20);
+  const queue = [{ symbol: target.qualifiedName, depth: 0 }];
+  const expanded = new Set();
+  const impacted = new Map();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || current.depth >= maxDepth || expanded.has(current.symbol)) {
+      continue;
+    }
+
+    expanded.add(current.symbol);
+    const neighbors = await neighborsResolver(current.symbol);
+    const callers = Array.isArray(neighbors?.callers) ? neighbors.callers : [];
+
+    for (const caller of callers) {
+      if (!caller?.symbol || caller.symbol === target.qualifiedName) {
+        continue;
+      }
+
+      const depth = current.depth + 1;
+      const resolved = Boolean(caller.resolved);
+      const existing = impacted.get(caller.symbol);
+
+      if (!existing || depth < existing.depth || (depth === existing.depth && resolved && !existing.resolved)) {
+        impacted.set(caller.symbol, { symbol: caller.symbol, depth, resolved });
+      }
+
+      if (resolved && !expanded.has(caller.symbol)) {
+        queue.push({ symbol: caller.symbol, depth });
+      }
+    }
+  }
+
+  return {
+    target: target.qualifiedName,
+    impacted: [...impacted.values()].sort((a, b) => {
+      if (a.depth !== b.depth) {
+        return a.depth - b.depth;
+      }
+      return a.symbol.localeCompare(b.symbol);
+    }),
+  };
+}
+
 module.exports = {
   SqliteBridgeError,
   bindParams,
@@ -266,4 +328,5 @@ module.exports = {
   findSymbolLocation,
   listSymbolsForFile,
   getNeighborsForSymbol,
+  getImpactForSymbol,
 };

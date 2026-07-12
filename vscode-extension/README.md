@@ -8,6 +8,9 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Codemap: Search Symbol` reads the SQLite index directly and shows results in a quick pick.
 - `Codemap: Show Symbol Body` resolves symbol location from SQLite and opens the extracted body in a preview editor.
 - `Codemap Neighbors` view in Explorer shows symbols for the active file and expandable caller/callee groups.
+- `Repo Graph: Find Symbol` runs an interactive symbol search and jumps to the selected result.
+- `Repo Graph: Show Impact` renders a structured reverse-dependency report for a symbol.
+- `Repo Graph: Reindex Workspace` runs a changed-only index refresh from the command palette.
 
 ## Sidebar TreeView
 

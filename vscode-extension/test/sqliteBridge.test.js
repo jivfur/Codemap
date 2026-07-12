@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { SqliteBridgeError, bindParams, queryRows, searchSymbols } = require("../src/sqliteBridge");
+const { SqliteBridgeError, bindParams, getImpactForSymbol, queryRows, searchSymbols } = require("../src/sqliteBridge");
 
 function makeWorkspace() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "codemap-sqlite-"));
@@ -79,5 +79,37 @@ test("searchSymbols returns normalized rows", async () => {
   assert.deepEqual(rows, [
     { kind: "function", qualifiedName: "pkg.mod.run", path: "pkg/mod.py" },
     { kind: "class", qualifiedName: "pkg.mod.Service", path: "pkg/mod.py" },
+  ]);
+});
+
+test("getImpactForSymbol returns deterministic BFS closure", async () => {
+  const graph = {
+    "pkg.mod.target": {
+      callers: [
+        { symbol: "pkg.mod.a", resolved: true },
+        { symbol: "pkg.mod.unresolved", resolved: false },
+      ],
+      callees: [],
+    },
+    "pkg.mod.a": {
+      callers: [{ symbol: "pkg.mod.b", resolved: true }],
+      callees: [],
+    },
+    "pkg.mod.b": {
+      callers: [{ symbol: "pkg.mod.target", resolved: true }],
+      callees: [],
+    },
+  };
+
+  const result = await getImpactForSymbol("/tmp/repo", "target", {
+    targetResolver: async () => ({ qualifiedName: "pkg.mod.target" }),
+    neighborsResolver: async (symbol) => graph[symbol] || { callers: [], callees: [] },
+  });
+
+  assert.equal(result.target, "pkg.mod.target");
+  assert.deepEqual(result.impacted, [
+    { symbol: "pkg.mod.a", depth: 1, resolved: true },
+    { symbol: "pkg.mod.unresolved", depth: 1, resolved: false },
+    { symbol: "pkg.mod.b", depth: 2, resolved: true },
   ]);
 });
