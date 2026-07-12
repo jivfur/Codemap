@@ -1,5 +1,6 @@
 const path = require("node:path");
-const { parseSearchRows, runGraphCommand } = require("./bridge");
+const { runGraphCommand } = require("./bridge");
+const { SqliteBridgeError, loadSymbolBody, searchSymbols } = require("./sqliteBridge");
 
 function getWorkspaceRoot(vscodeApi) {
   const folders = vscodeApi.workspace.workspaceFolders;
@@ -13,8 +14,17 @@ function register(disposables, disposable) {
   disposables.push(disposable);
 }
 
+function sqliteErrorMessage(error, context) {
+  if (error instanceof SqliteBridgeError) {
+    return `Codemap ${context} failed: ${error.message}`;
+  }
+  return `Codemap ${context} failed: ${error.message}`;
+}
+
 function activateWithApi(vscodeApi, context, deps = {}) {
   const runCommand = deps.runGraphCommand || runGraphCommand;
+  const searchWithSqlite = deps.searchSymbols || searchSymbols;
+  const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
 
   register(
     context.subscriptions,
@@ -55,8 +65,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       }
 
       try {
-        const result = await runCommand(root, ["search", query]);
-        const rows = parseSearchRows(result.lines);
+        const rows = await searchWithSqlite(root, query);
         if (rows.length === 0) {
           vscodeApi.window.showInformationMessage("No symbol matches.");
           return;
@@ -64,7 +73,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
         const selection = await vscodeApi.window.showQuickPick(
           rows.map((row) => ({
-            label: row.text,
+            label: `${row.qualifiedName} (${row.path})`,
             description: row.kind,
           })),
           { title: "Codemap Results" }
@@ -74,7 +83,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           vscodeApi.window.showInformationMessage(`Selected: ${selection.label}`);
         }
       } catch (error) {
-        vscodeApi.window.showErrorMessage(`Codemap search failed: ${error.message}`);
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "search"));
       }
     })
   );
@@ -99,7 +108,11 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       }
 
       try {
-        const result = await runCommand(root, ["body", symbol]);
+        const result = await loadBodyWithSqlite(root, symbol);
+        if (!result) {
+          vscodeApi.window.showInformationMessage("Symbol not found.");
+          return;
+        }
         const doc = await vscodeApi.workspace.openTextDocument({
           language: "markdown",
           content: result.lines.join("\n"),
@@ -109,7 +122,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           viewColumn: vscodeApi.ViewColumn.Beside,
         });
       } catch (error) {
-        vscodeApi.window.showErrorMessage(`Codemap body failed: ${error.message}`);
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "body"));
       }
     })
   );
