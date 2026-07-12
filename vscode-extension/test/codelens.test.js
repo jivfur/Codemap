@@ -50,7 +50,8 @@ test("provideCodeLenses builds caller count lenses for callable symbols", async 
 
   const lenses = await provider.provideCodeLenses({ uri: { fsPath: "/tmp/repo/pkg/mod.py" } });
   assert.equal(lenses.length, 2);
+  assert.equal(lenses[0].command.command, "codemap.openImpactWebview");
   assert.equal(lenses[0].command.title, "Called from 1 place");
   assert.equal(lenses[1].command.title, "Called from 2 places");
-  assert.deepEqual(lenses[0].command.arguments[0], "pkg.mod.f");
+  assert.deepEqual(lenses[0].command.arguments, ["pkg.mod.f"]);
 });

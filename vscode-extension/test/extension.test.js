@@ -424,3 +424,27 @@ test("openImpactWebview creates panel and opens message symbol", async () => {
   await fake.webviewPanels[0].onDidReceiveMessage({ command: "openSymbol", symbol: "pkg.mod.a" });
   assert.equal(fake.documents[0].uri.fsPath, "/tmp/repo/pkg/mod.py");
 });
+
+test("openImpactWebview accepts direct symbol argument", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  fake.api.window.showInputBox = async () => {
+    throw new Error("showInputBox should not be called");
+  };
+
+  let requestedSymbol = null;
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getImpactForSymbol: async (_root, symbol) => {
+      requestedSymbol = symbol;
+      return {
+        target: symbol,
+        impacted: [{ symbol: "pkg.mod.caller", depth: 1, resolved: true }],
+      };
+    },
+  });
+
+  await fake.registered.get("codemap.openImpactWebview")("pkg.mod.from.codelens");
+  assert.equal(requestedSymbol, "pkg.mod.from.codelens");
+  assert.equal(fake.webviewPanels.length, 1);
+});
