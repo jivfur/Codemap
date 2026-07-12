@@ -11,6 +11,8 @@ const {
 } = require("./sqliteBridge");
 const { createCodemapTreeProvider } = require("./treeView");
 
+const SUPPORTED_EXTENSIONS = new Set([".py", ".js", ".jsx", ".ts", ".tsx"]);
+
 function getWorkspaceRoot(vscodeApi) {
   const folders = vscodeApi.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -44,6 +46,21 @@ function formatImpactMarkdown(result) {
   return lines;
 }
 
+function isSupportedSavedDocument(workspaceRoot, document) {
+  if (!workspaceRoot || !document?.uri?.fsPath) {
+    return false;
+  }
+
+  const fsPath = String(document.uri.fsPath);
+  const relPath = path.relative(workspaceRoot, fsPath);
+  if (!relPath || relPath.startsWith("..") || path.isAbsolute(relPath)) {
+    return false;
+  }
+
+  const ext = path.extname(fsPath).toLowerCase();
+  return SUPPORTED_EXTENSIONS.has(ext);
+}
+
 function activateWithApi(vscodeApi, context, deps = {}) {
   const runCommand = deps.runGraphCommand || runGraphCommand;
   const searchWithSqlite = deps.searchSymbols || searchSymbols;
@@ -52,6 +69,10 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const impactWithSqlite = deps.getImpactForSymbol || getImpactForSymbol;
   const listSymbols = deps.listSymbolsForFile || listSymbolsForFile;
   const getNeighbors = deps.getNeighborsForSymbol || getNeighborsForSymbol;
+  const schedule = deps.schedule || ((fn, delayMs) => setTimeout(fn, delayMs));
+  const cancelSchedule = deps.cancelSchedule || ((handle) => clearTimeout(handle));
+  const saveDebounceMs = Number(deps.saveDebounceMs || 500);
+  const pendingSaveReindex = new Map();
 
   async function openSymbolLocationByName(symbol) {
     const currentRoot = getWorkspaceRoot(vscodeApi);
@@ -142,6 +163,36 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       context.subscriptions,
       vscodeApi.commands.registerCommand("codemap.refreshNeighbors", () => {
         provider.refresh();
+      })
+    );
+
+    register(
+      context.subscriptions,
+      vscodeApi.workspace.onDidSaveTextDocument((document) => {
+        if (!isSupportedSavedDocument(root, document)) {
+          return;
+        }
+
+        const filePath = String(document.uri.fsPath);
+        const existing = pendingSaveReindex.get(filePath);
+        if (existing) {
+          cancelSchedule(existing);
+        }
+
+        const handle = schedule(async () => {
+          pendingSaveReindex.delete(filePath);
+          try {
+            const result = await runCommand(root, ["index", "--changed-only"]);
+            const message = result.lines[0] || "Codemap on-save reindex complete.";
+            if (typeof vscodeApi.window.setStatusBarMessage === "function") {
+              vscodeApi.window.setStatusBarMessage(message, 2500);
+            }
+          } catch (error) {
+            vscodeApi.window.showWarningMessage(`Codemap on-save reindex failed: ${error.message}`);
+          }
+        }, saveDebounceMs);
+
+        pendingSaveReindex.set(filePath, handle);
       })
     );
   }
@@ -312,4 +363,5 @@ module.exports = {
   activate,
   deactivate,
   activateWithApi,
+  isSupportedSavedDocument,
 };

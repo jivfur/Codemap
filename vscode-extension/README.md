@@ -12,6 +12,12 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Repo Graph: Show Impact` renders a structured reverse-dependency report for a symbol.
 - `Repo Graph: Reindex Workspace` runs a changed-only index refresh from the command palette.
 
+## On-Save Reindex
+
+- Saving supported source files (`.py`, `.js`, `.jsx`, `.ts`, `.tsx`) triggers a debounced background `index --changed-only` run.
+- Reindex notifications are surfaced as lightweight status bar messages.
+- Non-supported files are ignored to avoid unnecessary indexing work.
+
 ## Sidebar TreeView
 
 - The tree refreshes when the active editor changes.
