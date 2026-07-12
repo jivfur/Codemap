@@ -26,9 +26,16 @@ class ParsedCall:
 
 
 @dataclass
+class ParsedInheritance:
+    child_qualified_name: str
+    base_name: str
+
+
+@dataclass
 class ParsedFile:
     language: str
     loc: int
     symbols: list[ParsedSymbol]
     imports: list[ParsedImport]
     calls: list[ParsedCall]
+    inherits: list[ParsedInheritance]

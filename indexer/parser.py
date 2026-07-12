@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .models import ParsedCall, ParsedFile, ParsedImport, ParsedSymbol
+from .models import ParsedCall, ParsedFile, ParsedImport, ParsedInheritance, ParsedSymbol
 
 
 LANGUAGE_BY_EXTENSION: dict[str, str] = {
@@ -25,6 +25,7 @@ class PythonGraphVisitor(ast.NodeVisitor):
         self.symbols: list[ParsedSymbol] = []
         self.imports: list[ParsedImport] = []
         self.calls: list[ParsedCall] = []
+        self.inherits: list[ParsedInheritance] = []
 
     def _qualified_name(self, name: str) -> str:
         if self.scope_stack:
@@ -71,6 +72,10 @@ class PythonGraphVisitor(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         qname = self._qualified_name(node.name)
+        for base in node.bases:
+            base_name = self._base_name(base)
+            if base_name:
+                self.inherits.append(ParsedInheritance(child_qualified_name=qname, base_name=base_name))
         self.symbols.append(
             ParsedSymbol(
                 kind="class",
@@ -129,6 +134,13 @@ class PythonGraphVisitor(ast.NodeVisitor):
             return func.attr
         return None
 
+    def _base_name(self, base: ast.AST) -> str | None:
+        if isinstance(base, ast.Name):
+            return base.id
+        if isinstance(base, ast.Attribute):
+            return base.attr
+        return None
+
 
 class TreeSitterPythonVisitor:
     def __init__(self, module_name: str, source_bytes: bytes) -> None:
@@ -138,6 +150,7 @@ class TreeSitterPythonVisitor:
         self.symbols: list[ParsedSymbol] = []
         self.imports: list[ParsedImport] = []
         self.calls: list[ParsedCall] = []
+        self.inherits: list[ParsedInheritance] = []
 
     def _text(self, node: Any) -> str:
         return self.source_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -205,6 +218,13 @@ class TreeSitterPythonVisitor:
             name = self._node_name(node)
             if name:
                 qname = self._qualified_name(name)
+                supers = node.child_by_field_name("superclasses")
+                if supers:
+                    supers_text = self._text(supers).strip()
+                    supers_text = supers_text.lstrip("(").rstrip(")")
+                    for base_name in [part.strip() for part in supers_text.split(",") if part.strip()]:
+                        base_leaf = base_name.split(".")[-1]
+                        self.inherits.append(ParsedInheritance(child_qualified_name=qname, base_name=base_leaf))
                 self.symbols.append(
                     ParsedSymbol(
                         kind="class",
@@ -289,6 +309,7 @@ def _parse_python_file_with_ast(file_path: Path, repo_root: Path) -> ParsedFile:
         symbols=visitor.symbols,
         imports=visitor.imports,
         calls=visitor.calls,
+        inherits=visitor.inherits,
     )
 
 
@@ -312,6 +333,7 @@ def _parse_python_file_with_tree_sitter(file_path: Path, repo_root: Path) -> Par
         symbols=visitor.symbols,
         imports=visitor.imports,
         calls=visitor.calls,
+        inherits=visitor.inherits,
     )
 
 
@@ -345,6 +367,7 @@ def _parse_jsts_with_regex(file_path: Path, repo_root: Path, language: str) -> P
     symbols: list[ParsedSymbol] = []
     imports: list[ParsedImport] = []
     calls: list[ParsedCall] = []
+    inherits: list[ParsedInheritance] = []
 
     function_stack: list[tuple[str, int]] = []
 
@@ -364,6 +387,15 @@ def _parse_jsts_with_regex(file_path: Path, repo_root: Path, language: str) -> P
         m_class = re.match(r"^class\s+([A-Za-z_][A-Za-z0-9_]*)", stripped)
         if m_class:
             class_name = m_class.group(1)
+            m_extends = re.match(r"^class\s+[A-Za-z_][A-Za-z0-9_]*\s+extends\s+([A-Za-z_][A-Za-z0-9_.]*)", stripped)
+            if m_extends:
+                base_name = m_extends.group(1).split(".")[-1]
+                inherits.append(
+                    ParsedInheritance(
+                        child_qualified_name=f"{module_name}.{class_name}",
+                        base_name=base_name,
+                    )
+                )
             symbols.append(
                 ParsedSymbol(
                     kind="class",
@@ -408,6 +440,7 @@ def _parse_jsts_with_regex(file_path: Path, repo_root: Path, language: str) -> P
         symbols=symbols,
         imports=imports,
         calls=calls,
+        inherits=inherits,
     )
 
 
@@ -425,6 +458,7 @@ def _parse_jsts_with_tree_sitter(file_path: Path, repo_root: Path, language: str
     symbols: list[ParsedSymbol] = []
     imports: list[ParsedImport] = []
     calls: list[ParsedCall] = []
+    inherits: list[ParsedInheritance] = []
     scope_stack: list[tuple[str, str]] = []
 
     def text(node: Any) -> str:
@@ -465,6 +499,16 @@ def _parse_jsts_with_tree_sitter(file_path: Path, repo_root: Path, language: str
             name_node = node.child_by_field_name("name")
             if name_node:
                 name = text(name_node).strip()
+                heritage = node.child_by_field_name("heritage")
+                if heritage:
+                    m_extends = re.search(r"extends\s+([A-Za-z_][A-Za-z0-9_.]*)", text(heritage))
+                    if m_extends:
+                        inherits.append(
+                            ParsedInheritance(
+                                child_qualified_name=qname(name),
+                                base_name=m_extends.group(1).split(".")[-1],
+                            )
+                        )
                 symbols.append(
                     ParsedSymbol(
                         kind="class",
@@ -516,6 +560,7 @@ def _parse_jsts_with_tree_sitter(file_path: Path, repo_root: Path, language: str
         symbols=symbols,
         imports=imports,
         calls=calls,
+        inherits=inherits,
     )
 
 

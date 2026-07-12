@@ -44,6 +44,7 @@ def runner():
             symbol_qnames = {s.qualified_name for s in parsed.symbols}
             import_modules = {imp.module for imp in parsed.imports}
             call_pairs = {(c.caller_qualified_name, c.callee_name) for c in parsed.calls}
+            inherits_pairs = {(i.child_qualified_name, i.base_name) for i in parsed.inherits}
 
             self.assertEqual(parsed.language, "python")
             self.assertGreaterEqual(parsed.loc, 1)
@@ -56,6 +57,26 @@ def runner():
             self.assertIn(("pkg.module.Greeter.hello", "print"), call_pairs)
             self.assertIn(("pkg.module.runner", "hello"), call_pairs)
             self.assertIn(("pkg.module.runner", "helper"), call_pairs)
+            self.assertEqual(inherits_pairs, set())
+
+    def test_parse_python_file_extracts_inheritance(self) -> None:
+        sample = """
+class Base:
+    pass
+
+class Child(Base):
+    pass
+""".strip()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            target = repo_root / "pkg" / "inherit.py"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(sample, encoding="utf-8")
+
+            parsed = parse_python_file(target, repo_root)
+            inherits_pairs = {(i.child_qualified_name, i.base_name) for i in parsed.inherits}
+            self.assertEqual(inherits_pairs, {("pkg.inherit.Child", "Base")})
 
     def test_parser_backend_is_declared(self) -> None:
         backend = python_parser_backend()
