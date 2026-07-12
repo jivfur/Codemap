@@ -214,3 +214,71 @@ def get_path(conn: sqlite3.Connection, source_query: str, target_query: str) -> 
         "target": dict(target),
         "path": [id_to_qname[sid] for sid in path_ids if sid in id_to_qname],
     }
+
+
+def get_rank(conn: sqlite3.Connection, top: int = 20) -> list[dict[str, object]]:
+    symbol_rows = conn.execute("SELECT id, qualified_name FROM symbols").fetchall()
+    if not symbol_rows:
+        return []
+
+    symbol_ids = [int(row["id"]) for row in symbol_rows]
+    id_to_name = {int(row["id"]): str(row["qualified_name"]) for row in symbol_rows}
+
+    adjacency = {sid: set() for sid in symbol_ids}
+    edge_rows = conn.execute(
+        """
+        SELECT src_id, dst_id
+        FROM edges
+        WHERE edge_type = 'calls'
+          AND src_type = 'symbol'
+          AND dst_type = 'symbol'
+          AND resolved = 1
+          AND dst_id IS NOT NULL
+        """
+    ).fetchall()
+    for row in edge_rows:
+        src_id = int(row["src_id"])
+        dst_id = int(row["dst_id"])
+        if src_id in adjacency and dst_id in adjacency:
+            adjacency[src_id].add(dst_id)
+
+    incoming = {sid: set() for sid in symbol_ids}
+    for src_id, dst_ids in adjacency.items():
+        for dst_id in dst_ids:
+            incoming[dst_id].add(src_id)
+
+    n = len(symbol_ids)
+    damping = 0.85
+    base = (1.0 - damping) / float(n)
+    rank = {sid: 1.0 / float(n) for sid in symbol_ids}
+
+    for _ in range(100):
+        dangling_sum = sum(rank[sid] for sid in symbol_ids if not adjacency[sid])
+        distributed_dangling = damping * dangling_sum / float(n)
+
+        next_rank: dict[int, float] = {}
+        for sid in symbol_ids:
+            inbound = 0.0
+            for src_id in incoming[sid]:
+                out_degree = len(adjacency[src_id])
+                if out_degree:
+                    inbound += rank[src_id] / float(out_degree)
+            next_rank[sid] = base + distributed_dangling + (damping * inbound)
+
+        delta = sum(abs(next_rank[sid] - rank[sid]) for sid in symbol_ids)
+        rank = next_rank
+        if delta < 1e-12:
+            break
+
+    ordered = sorted(symbol_ids, key=lambda sid: (-rank[sid], id_to_name[sid]))
+    limit = max(0, int(top))
+    if limit == 0:
+        return []
+
+    return [
+        {
+            "symbol": id_to_name[sid],
+            "score": rank[sid],
+        }
+        for sid in ordered[:limit]
+    ]

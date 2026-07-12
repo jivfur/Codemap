@@ -4,7 +4,7 @@ import sqlite3
 import unittest
 from pathlib import Path
 
-from indexer.graph_queries import get_impact, get_neighbors, get_path
+from indexer.graph_queries import get_impact, get_neighbors, get_path, get_rank
 
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "indexer" / "schema.sql"
@@ -101,6 +101,15 @@ class GraphQueryTests(unittest.TestCase):
         result = get_path(self.conn, "pkg.mod.a", "pkg.mod.d")
         self.assertIsNotNone(result)
         self.assertEqual(result["path"], [])
+
+    def test_rank_returns_expected_order_for_fixture(self) -> None:
+        ranked = get_rank(self.conn, top=4)
+        self.assertEqual([row["symbol"] for row in ranked], ["pkg.mod.b", "pkg.mod.a", "pkg.mod.c", "pkg.mod.d"])
+
+    def test_rank_respects_top_limit(self) -> None:
+        ranked = get_rank(self.conn, top=2)
+        self.assertEqual(len(ranked), 2)
+        self.assertEqual(ranked[0]["symbol"], "pkg.mod.b")
 
 
 if __name__ == "__main__":

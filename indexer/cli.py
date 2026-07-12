@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from .db import connect_db, init_schema
-from .graph_queries import get_impact, get_neighbors, get_path
+from .graph_queries import get_impact, get_neighbors, get_path, get_rank
 from .index import build_or_update_index
 
 
@@ -185,6 +185,23 @@ def cmd_path(args: argparse.Namespace) -> int:
         conn.close()
 
 
+def cmd_rank(args: argparse.Namespace) -> int:
+    conn = connect_db(_db_path())
+    try:
+        init_schema(conn, _repo_root() / "indexer" / "schema.sql")
+        rows = get_rank(conn, top=args.top)
+        if not rows:
+            print("No symbols available for ranking.")
+            return 0
+
+        print(f"# Top {len(rows)} symbols by PageRank")
+        for idx, row in enumerate(rows, start=1):
+            print(f"{idx:>2}. {row['symbol']} score={row['score']:.6f}")
+        return 0
+    finally:
+        conn.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Repo graph index CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -217,6 +234,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_path.add_argument("source", help="Source symbol (qualified or short name)")
     p_path.add_argument("target", help="Target symbol (qualified or short name)")
     p_path.set_defaults(func=cmd_path)
+
+    p_rank = sub.add_parser("rank", help="Rank symbols by PageRank over call graph")
+    p_rank.add_argument("--top", type=int, default=20, help="Number of ranked symbols to return")
+    p_rank.set_defaults(func=cmd_rank)
 
     return parser
 
