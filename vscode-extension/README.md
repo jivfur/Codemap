@@ -7,6 +7,13 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Codemap: Index Workspace` runs `python3 graph.py index` in the workspace root.
 - `Codemap: Search Symbol` reads the SQLite index directly and shows results in a quick pick.
 - `Codemap: Show Symbol Body` resolves symbol location from SQLite and opens the extracted body in a preview editor.
+- `Codemap Neighbors` view in Explorer shows symbols for the active file and expandable caller/callee groups.
+
+## Sidebar TreeView
+
+- The tree refreshes when the active editor changes.
+- Clicking a resolved symbol opens the source file and reveals the symbol range.
+- Use `Codemap: Refresh Neighbors` to force a manual refresh.
 
 ## SQLite Read Bridge
 

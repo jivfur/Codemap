@@ -9,12 +9,61 @@ function makeFakeVscode() {
   const warningMessages = [];
   const errorMessages = [];
   const documents = [];
+  const activeEditorListeners = [];
+  const treeViews = [];
 
   const api = {
+    Uri: {
+      file: (fsPath) => ({ fsPath }),
+    },
+    Position: class {
+      constructor(line, character) {
+        this.line = line;
+        this.character = character;
+      }
+    },
+    Range: class {
+      constructor(start, end) {
+        this.start = start;
+        this.end = end;
+      }
+    },
+    Selection: class {
+      constructor(start, end) {
+        this.start = start;
+        this.end = end;
+      }
+    },
+    TextEditorRevealType: {
+      InCenter: 0,
+    },
+    TreeItem: class {
+      constructor(label, collapsibleState) {
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+      }
+    },
+    TreeItemCollapsibleState: {
+      None: 0,
+      Collapsed: 1,
+      Expanded: 2,
+    },
+    EventEmitter: class {
+      constructor() {
+        this.listeners = [];
+        this.event = (listener) => {
+          this.listeners.push(listener);
+          return { dispose: () => {} };
+        };
+      }
+      fire(value) {
+        this.listeners.forEach((listener) => listener(value));
+      }
+    },
     workspace: {
       workspaceFolders: [{ uri: { fsPath: "/tmp/repo" } }],
-      openTextDocument: async ({ content }) => {
-        const doc = { content };
+      openTextDocument: async (arg) => {
+        const doc = arg && arg.content ? { content: arg.content } : { uri: arg };
         documents.push(doc);
         return doc;
       },
@@ -38,13 +87,31 @@ function makeFakeVscode() {
       showErrorMessage: async (m) => {
         errorMessages.push(m);
       },
+      createTreeView: (id, options) => {
+        const tree = { id, options, dispose: () => {} };
+        treeViews.push(tree);
+        return tree;
+      },
+      onDidChangeActiveTextEditor: (listener) => {
+        activeEditorListeners.push(listener);
+        return { dispose: () => {} };
+      },
     },
     ViewColumn: {
       Beside: 2,
     },
   };
 
-  return { api, registered, infoMessages, warningMessages, errorMessages, documents };
+  return {
+    api,
+    registered,
+    infoMessages,
+    warningMessages,
+    errorMessages,
+    documents,
+    activeEditorListeners,
+    treeViews,
+  };
 }
 
 test("activateWithApi registers expected commands", () => {
@@ -58,7 +125,10 @@ test("activateWithApi registers expected commands", () => {
   assert.ok(fake.registered.has("codemap.indexWorkspace"));
   assert.ok(fake.registered.has("codemap.searchSymbol"));
   assert.ok(fake.registered.has("codemap.showSymbolBody"));
-  assert.equal(context.subscriptions.length, 3);
+  assert.ok(fake.registered.has("codemap.openSymbolLocation"));
+  assert.ok(fake.registered.has("codemap.refreshNeighbors"));
+  assert.equal(fake.treeViews.length, 1);
+  assert.ok(context.subscriptions.length >= 5);
 });
 
 test("index command reports first output line", async () => {
@@ -124,4 +194,26 @@ test("search command reports sqlite errors", async () => {
   await cmd();
 
   assert.equal(fake.errorMessages[0], "Codemap search failed: boom");
+});
+
+test("active editor change triggers tree refresh", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    listSymbolsForFile: async () => [],
+    getNeighborsForSymbol: async () => ({ callers: [], callees: [] }),
+  });
+
+  assert.equal(fake.activeEditorListeners.length, 1);
+
+  const provider = fake.treeViews[0].options.treeDataProvider;
+  let refreshCount = 0;
+  provider.onDidChangeTreeData(() => {
+    refreshCount += 1;
+  });
+
+  fake.activeEditorListeners[0]();
+  assert.equal(refreshCount, 1);
 });

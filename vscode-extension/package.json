@@ -23,8 +23,29 @@
       {
         "command": "codemap.showSymbolBody",
         "title": "Codemap: Show Symbol Body"
+      },
+      {
+        "command": "codemap.refreshNeighbors",
+        "title": "Codemap: Refresh Neighbors"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "codemap.neighborsView",
+          "name": "Codemap Neighbors"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "codemap.refreshNeighbors",
+          "when": "view == codemap.neighborsView",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "test": "node --test test/*.test.js"

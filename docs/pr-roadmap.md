@@ -27,8 +27,8 @@ How to use this file:
 | 7 | Inheritance Edges | feat/inherits-edges | Merged | Add extraction and storage of `inherits` edges for class hierarchies. | Unit tests for single and multi-level inheritance mapping. | All tests pass. Existing commands continue to behave correctly. | [PR #8](https://github.com/jivfur/Codemap/pull/8) |
 | 8 | Test and CI Baseline | chore/test-ci-baseline | Merged | Add test runner config, baseline fixtures, and CI workflow to run tests on PRs. | CI runs full suite on push and PR. | CI green on default branch. Local instructions documented. | [PR #9](https://github.com/jivfur/Codemap/pull/9) |
 | 9 | VS Code Extension Scaffold | feat/vscode-extension-scaffold | Merged | Scaffold extension package with commands and basic integration points to query SQLite index. | Unit tests for extension command wiring where practical. | Extension activates, commands execute, and index query bridge is functional. | [PR #10](https://github.com/jivfur/Codemap/pull/10) |
-| 10 | VS Code SQLite Query Bridge | feat/vscode-sqlite-query-bridge | In Progress | Add a direct SQLite adapter in the extension (with safe read-only query helpers) as an alternative to shelling out for read paths. | Unit tests for query helpers and error handling when DB is missing/corrupt. | Extension commands can read graph data without relying on CLI text parsing. | Branch started |
-| 11 | Sidebar TreeView (Symbols + Neighbors) | feat/vscode-treeview-neighbors | Planned | Add a contributed TreeView showing current-file symbols and direct callers/callees for selected symbol. | Unit tests for provider mapping and refresh behavior on selection changes. | TreeView renders stable items and opens source locations correctly. | |
+| 10 | VS Code SQLite Query Bridge | feat/vscode-sqlite-query-bridge | Merged | Add a direct SQLite adapter in the extension (with safe read-only query helpers) as an alternative to shelling out for read paths. | Unit tests for query helpers and error handling when DB is missing/corrupt. | Extension commands can read graph data without relying on CLI text parsing. | [PR #13](https://github.com/jivfur/Codemap/pull/13) |
+| 11 | Sidebar TreeView (Symbols + Neighbors) | feat/vscode-treeview-neighbors | In Progress | Add a contributed TreeView showing current-file symbols and direct callers/callees for selected symbol. | Unit tests for provider mapping and refresh behavior on selection changes. | TreeView renders stable items and opens source locations correctly. | Branch started |
 | 12 | Command Palette UX Completion | feat/vscode-command-ux | Planned | Add `Repo Graph: Show Impact`, `Repo Graph: Find Symbol`, and `Repo Graph: Reindex Workspace` with structured outputs and improved quick-pick flows. | Unit tests for command handlers and argument prompts. | Commands run end-to-end and handle empty/error states cleanly. | |
 | 13 | On-Save Changed-Only Reindex | feat/vscode-onsave-reindex | Planned | Hook `workspace.onDidSaveTextDocument` to trigger background `index --changed-only` refresh and lightweight status notifications. | Unit tests for save event filtering/debouncing and invocation arguments. | Reindex triggers only for supported files and does not block editor UX. | |
 | 14 | CodeLens Caller Counts | feat/vscode-codelens-callers | Planned | Add CodeLens annotations (`Called from N places`) above function/method symbols backed by graph queries. | Unit tests for lens provider counts and command payloads. | CodeLens appears deterministically and navigates to callers list. | |
@@ -44,5 +44,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 10: VS Code SQLite Query Bridge
-- Branch: feat/vscode-sqlite-query-bridge
+- PR 11: Sidebar TreeView (Symbols + Neighbors)
+- Branch: feat/vscode-treeview-neighbors
