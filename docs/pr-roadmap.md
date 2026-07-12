@@ -31,8 +31,8 @@ How to use this file:
 | 11 | Sidebar TreeView (Symbols + Neighbors) | feat/vscode-treeview-neighbors | Merged | Add a contributed TreeView showing current-file symbols and direct callers/callees for selected symbol. | Unit tests for provider mapping and refresh behavior on selection changes. | TreeView renders stable items and opens source locations correctly. | [PR #14](https://github.com/jivfur/Codemap/pull/14) |
 | 12 | Command Palette UX Completion | feat/vscode-command-ux | Merged | Add `Repo Graph: Show Impact`, `Repo Graph: Find Symbol`, and `Repo Graph: Reindex Workspace` with structured outputs and improved quick-pick flows. | Unit tests for command handlers and argument prompts. | Commands run end-to-end and handle empty/error states cleanly. | [PR #15](https://github.com/jivfur/Codemap/pull/15) |
 | 13 | On-Save Changed-Only Reindex | feat/vscode-onsave-reindex | Merged | Hook `workspace.onDidSaveTextDocument` to trigger background `index --changed-only` refresh and lightweight status notifications. | Unit tests for save event filtering/debouncing and invocation arguments. | Reindex triggers only for supported files and does not block editor UX. | [PR #16](https://github.com/jivfur/Codemap/pull/16) |
-| 14 | CodeLens Caller Counts | feat/vscode-codelens-callers | In Progress | Add CodeLens annotations (`Called from N places`) above function/method symbols backed by graph queries. | Unit tests for lens provider counts and command payloads. | CodeLens appears deterministically and navigates to callers list. | Branch started |
-| 15 | Impact Webview MVP | feat/vscode-impact-webview | Planned | Add a simple webview subgraph explorer centered on a symbol impact query (nodes + edges + click-to-open). | Unit tests for webview message contracts and command plumbing. | Webview launches from command and renders consistent impact graph data. | |
+| 14 | CodeLens Caller Counts | feat/vscode-codelens-callers | Merged | Add CodeLens annotations (`Called from N places`) above function/method symbols backed by graph queries. | Unit tests for lens provider counts and command payloads. | CodeLens appears deterministically and navigates to callers list. | [PR #17](https://github.com/jivfur/Codemap/pull/17) |
+| 15 | Impact Webview MVP | feat/vscode-impact-webview | In Progress | Add a simple webview subgraph explorer centered on a symbol impact query (nodes + edges + click-to-open). | Unit tests for webview message contracts and command plumbing. | Webview launches from command and renders consistent impact graph data. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -44,5 +44,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 14: CodeLens Caller Counts
-- Branch: feat/vscode-codelens-callers
+- PR 15: Impact Webview MVP
+- Branch: feat/vscode-impact-webview

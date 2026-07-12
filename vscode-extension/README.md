@@ -11,6 +11,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Repo Graph: Find Symbol` runs an interactive symbol search and jumps to the selected result.
 - `Repo Graph: Show Impact` renders a structured reverse-dependency report for a symbol.
 - `Repo Graph: Reindex Workspace` runs a changed-only index refresh from the command palette.
+- `Repo Graph: Open Impact Webview` opens a lightweight impact graph panel with clickable nodes.
 
 ## On-Save Reindex
 
