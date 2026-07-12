@@ -63,7 +63,7 @@ function renderImpactWebviewHtml(graphData) {
   </head>
   <body>
     <h2>Impact Graph</h2>
-    <p class="meta">Target symbol: <strong id="target"></strong></p>
+    <p class="meta">Focus: <strong id="target"></strong></p>
     <div class="controls">
       <label for="maxDepthFilter">Max depth</label>
       <select id="maxDepthFilter"></select>
@@ -459,11 +459,11 @@ function renderImpactWebviewHtml(graphData) {
 </html>`;
 }
 
-function openImpactWebviewPanel(vscodeApi, graphData, onOpenSymbol) {
+function openImpactWebviewPanel(vscodeApi, graphData, onOpenSymbol, options = {}) {
   if (!impactPanel) {
     impactPanel = vscodeApi.window.createWebviewPanel(
       'codemapImpact',
-      `Codemap Impact: ${graphData.target}`,
+      options.panelTitle || `Codemap Impact: ${graphData.target}`,
       vscodeApi.ViewColumn.Beside,
       { enableScripts: true }
     );
@@ -482,7 +482,7 @@ function openImpactWebviewPanel(vscodeApi, graphData, onOpenSymbol) {
     impactPanel.reveal(vscodeApi.ViewColumn.Beside, true);
   }
 
-  impactPanel.title = `Codemap Impact: ${graphData.target}`;
+  impactPanel.title = options.panelTitle || `Codemap Impact: ${graphData.target}`;
   impactPanel.webview.html = renderImpactWebviewHtml(graphData);
   return impactPanel;
 }

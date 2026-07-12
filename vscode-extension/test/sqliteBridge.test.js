@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { SqliteBridgeError, bindParams, getImpactForSymbol, queryRows, searchSymbols } = require("../src/sqliteBridge");
+const { SqliteBridgeError, bindParams, getImpactForSymbol, getRepoOverviewGraph, queryRows, searchSymbols } = require("../src/sqliteBridge");
 
 function makeWorkspace() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "codemap-sqlite-"));
@@ -112,4 +112,49 @@ test("getImpactForSymbol returns deterministic BFS closure", async () => {
     { symbol: "pkg.mod.unresolved", depth: 1, resolved: false },
     { symbol: "pkg.mod.b", depth: 2, resolved: true },
   ]);
+});
+
+test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
+  const calls = [];
+  const root = makeWorkspace();
+  const dbPath = path.join(root, "index.db");
+  fs.writeFileSync(dbPath, "db", "utf-8");
+  const fakeRunner = async (_cmd, args) => {
+    const sql = args[2];
+    calls.push(sql);
+
+    if (sql.includes("ORDER BY inbound_calls DESC")) {
+      return {
+        stdout: JSON.stringify([
+          { qualified_name: "pkg.mod.alpha", kind: "function" },
+          { qualified_name: "pkg.mod.beta", kind: "function" },
+          { qualified_name: "pkg.mod.gamma", kind: "class" },
+        ]),
+        stderr: "",
+      };
+    }
+
+    return {
+      stdout: JSON.stringify([
+        { source: "pkg.mod.alpha", target: "pkg.mod.beta", resolved: 1 },
+        { source: "pkg.mod.beta", target: "pkg.mod.gamma", resolved: 1 },
+      ]),
+      stderr: "",
+    };
+  };
+
+  const graph = await getRepoOverviewGraph("/tmp/repo", {
+    dbPath,
+    runner: fakeRunner,
+    limit: 3,
+    bucketSize: 2,
+  });
+
+  assert.equal(graph.target, "Repository Overview");
+  assert.equal(graph.nodes.length, 3);
+  assert.equal(graph.edges.length, 2);
+  assert.equal(graph.nodes[0].depth, 0);
+  assert.equal(graph.nodes[2].depth, 1);
+  assert.ok(calls.some((sql) => sql.includes("inbound_calls DESC")));
+  assert.ok(calls.some((sql) => sql.includes("src.qualified_name IN")));
 });
