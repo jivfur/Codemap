@@ -251,6 +251,9 @@ the editor, no separate app needed.
 plus the webview for deliberate exploration when you click through — no
 need to keep a graph panel open at all times.
 
+The next repository-level extension step is a bounded repo overview mode
+that shows a top-symbol slice of the call graph, not a raw full-graph dump.
+
 ## Known limitations (by design, not oversights)
 
 - Call resolution is name/import based, not type-checked — dynamic

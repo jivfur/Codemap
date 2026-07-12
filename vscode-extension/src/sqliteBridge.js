@@ -46,6 +46,10 @@ function bindParams(sql, params = []) {
   return bound;
 }
 
+function buildPlaceholders(count) {
+  return Array.from({ length: count }, () => "?").join(", ");
+}
+
 function assertReadonlyQuery(sql) {
   const trimmed = sql.trim();
   if (!/^with\b/i.test(trimmed) && !/^select\b/i.test(trimmed)) {
@@ -319,6 +323,84 @@ async function getImpactForSymbol(workspaceRoot, symbol, options = {}) {
   };
 }
 
+async function getRepoOverviewGraph(workspaceRoot, options = {}) {
+  const limit = Number(options.limit || 40);
+  const bucketSize = Number(options.bucketSize || 10);
+
+  const topRows = await queryRows(
+    workspaceRoot,
+    `
+    WITH inbound AS (
+      SELECT dst.id AS symbol_id, COUNT(*) AS count
+      FROM edges e
+      JOIN symbols dst ON dst.id = e.dst_id
+      WHERE e.edge_type = 'calls' AND e.resolved = 1
+      GROUP BY dst.id
+    ),
+    outbound AS (
+      SELECT src.id AS symbol_id, COUNT(*) AS count
+      FROM edges e
+      JOIN symbols src ON src.id = e.src_id
+      WHERE e.edge_type = 'calls'
+      GROUP BY src.id
+    )
+    SELECT s.qualified_name AS qualified_name,
+           s.kind AS kind,
+           COALESCE(inbound.count, 0) AS inbound_calls,
+           COALESCE(outbound.count, 0) AS outbound_calls
+    FROM symbols s
+    LEFT JOIN inbound ON inbound.symbol_id = s.id
+    LEFT JOIN outbound ON outbound.symbol_id = s.id
+    ORDER BY inbound_calls DESC, outbound_calls DESC, s.qualified_name
+    LIMIT ?
+    `,
+    [limit],
+    options
+  );
+
+  const selectedNames = topRows.map((row) => row.qualified_name).filter(Boolean);
+  const nodes = topRows.map((row, index) => ({
+    id: row.qualified_name,
+    label: row.qualified_name,
+    depth: Math.min(2, Math.floor(index / bucketSize)),
+    resolution: "resolved",
+    kind: row.kind || "symbol",
+  }));
+
+  if (selectedNames.length === 0) {
+    return { target: "Repository Overview", nodes, edges: [] };
+  }
+
+  const inClause = buildPlaceholders(selectedNames.length);
+  const edges = await queryRows(
+    workspaceRoot,
+    `
+    SELECT src.qualified_name AS source,
+           dst.qualified_name AS target,
+           e.resolved AS resolved
+    FROM edges e
+    JOIN symbols src ON src.id = e.src_id
+    JOIN symbols dst ON dst.id = e.dst_id
+    WHERE e.edge_type = 'calls'
+      AND src.qualified_name IN (${inClause})
+      AND dst.qualified_name IN (${inClause})
+    ORDER BY source, target
+    `,
+    [...selectedNames, ...selectedNames],
+    options
+  );
+
+  return {
+    target: "Repository Overview",
+    nodes,
+    edges: edges.map((row) => ({
+      from: row.source,
+      to: row.target,
+      resolution: Number(row.resolved || 0) === 1 ? "resolved" : "unresolved",
+    })),
+  };
+}
+
 module.exports = {
   SqliteBridgeError,
   bindParams,
@@ -329,4 +411,5 @@ module.exports = {
   listSymbolsForFile,
   getNeighborsForSymbol,
   getImpactForSymbol,
+  getRepoOverviewGraph,
 };

@@ -5,6 +5,7 @@ const {
   findSymbolLocation,
   getImpactForSymbol,
   getNeighborsForSymbol,
+  getRepoOverviewGraph,
   listSymbolsForFile,
   loadSymbolBody,
   searchSymbols,
@@ -69,6 +70,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
   const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
   const impactWithSqlite = deps.getImpactForSymbol || getImpactForSymbol;
+  const repoOverviewWithSqlite = deps.getRepoOverviewGraph || getRepoOverviewGraph;
   const listSymbols = deps.listSymbolsForFile || listSymbolsForFile;
   const getNeighbors = deps.getNeighborsForSymbol || getNeighborsForSymbol;
   const schedule = deps.schedule || ((fn, delayMs) => setTimeout(fn, delayMs));
@@ -380,6 +382,36 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         });
       } catch (error) {
         vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "impact webview"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.openRepoOverview", async () => {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
+        vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+        return;
+      }
+
+      try {
+        const overview = await repoOverviewWithSqlite(currentRoot, { limit: 40, bucketSize: 10 });
+        if (!overview || overview.nodes.length === 0) {
+          vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
+          return;
+        }
+
+        openImpactWebviewPanel(
+          vscodeApi,
+          overview,
+          async (selectedSymbol) => {
+            await openSymbolLocationByName(selectedSymbol);
+          },
+          { panelTitle: "Codemap Repository Overview" }
+        );
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "repo overview"));
       }
     })
   );
