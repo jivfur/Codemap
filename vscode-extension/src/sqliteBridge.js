@@ -323,16 +323,24 @@ async function getImpactForSymbol(workspaceRoot, symbol, options = {}) {
   };
 }
 
-function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode) {
+function truncateLabel(label, maxLabelLength) {
+  const value = String(label || "");
+  if (value.length <= maxLabelLength) {
+    return value;
+  }
+  return `${value.slice(0, Math.max(1, maxLabelLength - 3))}...`;
+}
+
+function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode, maxLabelLength) {
   const qualified = String(qualifiedName || "");
   if (labelMode === "qualified") {
-    return qualified;
+    return truncateLabel(qualified, maxLabelLength);
   }
 
   const nameParts = qualified.split(".");
   const shortName = nameParts[nameParts.length - 1] || qualified;
   const normalizedKind = String(kind || "symbol");
-  return `${normalizedKind}: ${shortName}`;
+  return truncateLabel(`${normalizedKind}: ${shortName}`, maxLabelLength);
 }
 
 function computeRepoOverviewNodeSize(row, nodeSizeMode) {
@@ -365,6 +373,10 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const labelMode = rawLabelMode === "qualified" ? "qualified" : "short-kind";
   const rawNodeSizeMode = String(options.nodeSizeMode || "degree").toLowerCase();
   const nodeSizeMode = rawNodeSizeMode === "fixed" ? "fixed" : "degree";
+  const rawMaxLabelLength = Number(options.maxLabelLength || 28);
+  const maxLabelLength = Number.isFinite(rawMaxLabelLength)
+    ? Math.max(8, Math.min(120, Math.floor(rawMaxLabelLength)))
+    : 28;
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
   const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
   const sortExpression =
@@ -409,7 +421,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const selectedNames = topRows.map((row) => row.qualified_name).filter(Boolean);
   const nodes = topRows.map((row, index) => ({
     id: row.qualified_name,
-    label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode),
+    label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode, maxLabelLength),
     size: computeRepoOverviewNodeSize(row, nodeSizeMode),
     depth: Math.min(2, Math.floor(index / bucketSize)),
     resolution: "resolved",
@@ -418,7 +430,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, ${nodeSizeMode} size, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -445,7 +457,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, ${nodeSizeMode} size, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,
