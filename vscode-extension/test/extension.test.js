@@ -491,6 +491,7 @@ test("openRepoOverview opens repository-wide graph", async () => {
     rankBalance: "inbound",
     labelMode: "short-kind",
     nodeSizeMode: "degree",
+    minNodeSize: 9,
     maxNodeSize: 22,
     maxLabelLength: 28,
     minDegree: 0,

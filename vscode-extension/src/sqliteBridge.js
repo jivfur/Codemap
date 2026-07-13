@@ -343,7 +343,7 @@ function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode, maxLabelLen
   return truncateLabel(`${normalizedKind}: ${shortName}`, maxLabelLength);
 }
 
-function computeRepoOverviewNodeSize(row, nodeSizeMode, maxNodeSize) {
+function computeRepoOverviewNodeSize(row, nodeSizeMode, minNodeSize, maxNodeSize) {
   if (nodeSizeMode === "fixed") {
     return 11;
   }
@@ -351,7 +351,7 @@ function computeRepoOverviewNodeSize(row, nodeSizeMode, maxNodeSize) {
   const outbound = Number(row?.outbound_calls || 0);
   const score = Math.max(0, inbound + outbound);
   const scaled = 9 + Math.round(Math.log2(score + 1) * 3);
-  return Math.max(9, Math.min(maxNodeSize, scaled));
+  return Math.max(minNodeSize, Math.min(maxNodeSize, scaled));
 }
 
 async function getRepoOverviewGraph(workspaceRoot, options = {}) {
@@ -378,10 +378,16 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const labelMode = rawLabelMode === "qualified" ? "qualified" : "short-kind";
   const rawNodeSizeMode = String(options.nodeSizeMode || "degree").toLowerCase();
   const nodeSizeMode = rawNodeSizeMode === "fixed" ? "fixed" : "degree";
+  const rawMinNodeSize = Number(options.minNodeSize || 9);
+  const minNodeSizeBase = Number.isFinite(rawMinNodeSize)
+    ? Math.max(9, Math.min(60, Math.floor(rawMinNodeSize)))
+    : 9;
   const rawMaxNodeSize = Number(options.maxNodeSize || 22);
-  const maxNodeSize = Number.isFinite(rawMaxNodeSize)
+  const maxNodeSizeBase = Number.isFinite(rawMaxNodeSize)
     ? Math.max(9, Math.min(60, Math.floor(rawMaxNodeSize)))
     : 22;
+  const minNodeSize = Math.min(minNodeSizeBase, maxNodeSizeBase);
+  const maxNodeSize = Math.max(minNodeSizeBase, maxNodeSizeBase);
   const rawMaxLabelLength = Number(options.maxLabelLength || 28);
   const maxLabelLength = Number.isFinite(rawMaxLabelLength)
     ? Math.max(8, Math.min(120, Math.floor(rawMaxLabelLength)))
@@ -449,7 +455,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     fullLabel: row.qualified_name,
     inboundCalls: Number(row.inbound_calls || 0),
     outboundCalls: Number(row.outbound_calls || 0),
-    size: computeRepoOverviewNodeSize(row, nodeSizeMode, maxNodeSize),
+    size: computeRepoOverviewNodeSize(row, nodeSizeMode, minNodeSize, maxNodeSize),
     depth: Math.min(maxDepthBand, Math.floor(index / bucketSize)),
     resolution: "resolved",
     kind: row.kind || "symbol",
@@ -457,7 +463,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size=${minNodeSize}-${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -484,7 +490,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size=${minNodeSize}-${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,
