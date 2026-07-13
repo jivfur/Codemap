@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #29:
+Completed PR sequence through PR #30:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -92,9 +92,10 @@ Completed PR sequence through PR #29:
   - PR #27: repository overview edge scope controls
   - PR #28: repository overview edge type controls
   - PR #29: repository overview ranking balance controls
+  - PR #30: repository overview node label mode controls
 
 Current candidate feature:
-- Repository overview node label modes (qualified vs short-kind) to improve readability in dense views.
+- Repository overview node size modes (degree-weighted vs fixed) to visually emphasize central symbols.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

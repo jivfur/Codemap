@@ -43,7 +43,8 @@ How to use this file:
 | 23 | Repo Overview Edge Scope Controls | feat/vscode-repo-overview-edge-scope | Merged | Add command-time edge scope selection (resolved-only vs all edges) and propagate it through overview query scoring, edge extraction, and panel labels. | Unit tests for option forwarding and query behavior differences by edge scope. | Users can toggle between high-confidence and exploratory overview graphs without code edits. | [PR #27](https://github.com/jivfur/Codemap/pull/27) |
 | 24 | Repo Overview Edge Type Controls | feat/vscode-repo-overview-edge-types | Merged | Add command-time edge type selection (calls-only vs calls+inherits) and propagate it through overview ranking, edge extraction, and panel labels. | Unit tests for option forwarding and SQL filtering by edge type mode. | Users can include inheritance structure in repo overviews without loading a raw full graph. | [PR #28](https://github.com/jivfur/Codemap/pull/28) |
 | 25 | Repo Overview Ranking Balance Controls | feat/vscode-repo-overview-balance | Merged | Add command-time ranking balance selection (inbound-heavy, balanced, outbound-heavy) and propagate it through overview ranking sort and panel labels. | Unit tests for option forwarding and SQL order expression changes by ranking mode. | Users can choose which graph centrality bias shapes the top-symbol repo overview. | [PR #29](https://github.com/jivfur/Codemap/pull/29) |
-| 26 | Repo Overview Node Label Modes | feat/vscode-repo-overview-kind-labels | In Progress | Add command-time node label mode selection (qualified vs short-kind) and propagate it through overview node labels and panel metadata. | Unit tests for option forwarding and node label formatting. | Users can choose compact readable labels in dense overviews without losing stable symbol identity. | Branch started |
+| 26 | Repo Overview Node Label Modes | feat/vscode-repo-overview-kind-labels | Merged | Add command-time node label mode selection (qualified vs short-kind) and propagate it through overview node labels and panel metadata. | Unit tests for option forwarding and node label formatting. | Users can choose compact readable labels in dense overviews without losing stable symbol identity. | [PR #30](https://github.com/jivfur/Codemap/pull/30) |
+| 27 | Repo Overview Node Size Modes | feat/vscode-repo-overview-degree-size | In Progress | Add command-time node size mode selection (degree-weighted vs fixed) and propagate it through overview node payload and panel metadata. | Unit tests for option forwarding, node size output, and webview size-aware render markers. | Users can visually prioritize high-degree symbols while keeping graph scope bounded. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -55,5 +56,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 26: Repo Overview Node Label Modes
-- Branch: feat/vscode-repo-overview-kind-labels
+- PR 27: Repo Overview Node Size Modes
+- Branch: feat/vscode-repo-overview-degree-size

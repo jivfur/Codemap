@@ -335,6 +335,17 @@ function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode) {
   return `${normalizedKind}: ${shortName}`;
 }
 
+function computeRepoOverviewNodeSize(row, nodeSizeMode) {
+  if (nodeSizeMode === "fixed") {
+    return 11;
+  }
+  const inbound = Number(row?.inbound_calls || 0);
+  const outbound = Number(row?.outbound_calls || 0);
+  const score = Math.max(0, inbound + outbound);
+  const scaled = 9 + Math.round(Math.log2(score + 1) * 3);
+  return Math.max(9, Math.min(22, scaled));
+}
+
 async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const rawLimit = Number(options.limit || 40);
   const limit = Number.isFinite(rawLimit) ? Math.max(5, Math.min(200, Math.floor(rawLimit))) : 40;
@@ -352,6 +363,8 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     : "inbound";
   const rawLabelMode = String(options.labelMode || "short-kind").toLowerCase();
   const labelMode = rawLabelMode === "qualified" ? "qualified" : "short-kind";
+  const rawNodeSizeMode = String(options.nodeSizeMode || "degree").toLowerCase();
+  const nodeSizeMode = rawNodeSizeMode === "fixed" ? "fixed" : "degree";
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
   const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
   const sortExpression =
@@ -397,6 +410,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const nodes = topRows.map((row, index) => ({
     id: row.qualified_name,
     label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode),
+    size: computeRepoOverviewNodeSize(row, nodeSizeMode),
     depth: Math.min(2, Math.floor(index / bucketSize)),
     resolution: "resolved",
     kind: row.kind || "symbol",
@@ -404,7 +418,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, ${nodeSizeMode} size, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -431,7 +445,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, ${nodeSizeMode} size, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,
