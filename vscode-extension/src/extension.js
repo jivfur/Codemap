@@ -434,6 +434,15 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       );
       const selectedRankBalance = rankBalancePick?.rankBalance || "inbound";
 
+      const labelModePick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Qualified symbol labels", labelMode: "qualified" },
+          { label: "Short labels with kind", labelMode: "short-kind" },
+        ],
+        { title: "Repo Graph: Overview Node Labels" }
+      );
+      const selectedLabelMode = labelModePick?.labelMode || "short-kind";
+
       const topInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Size",
         prompt: "How many top symbols to include?",
@@ -452,6 +461,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           edgeScope: selectedEdgeScope,
           edgeTypes: selectedEdgeTypes,
           rankBalance: selectedRankBalance,
+          labelMode: selectedLabelMode,
         });
         if (!overview || overview.nodes.length === 0) {
           vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
@@ -465,7 +475,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels, top ${limit})`,
           }
         );
       } catch (error) {

@@ -253,8 +253,8 @@ need to keep a graph panel open at all times.
 
 Current repository-level extension status includes a bounded repo overview mode
 with symbol kind, top-N size, edge scope, and edge-type controls; the next
-increment adds ranking balance controls (inbound-heavy, balanced, outbound-heavy)
-while keeping the view bounded.
+increment adds node label mode controls (qualified vs short-kind) while keeping
+the view bounded.
 
 ## Known limitations (by design, not oversights)
 

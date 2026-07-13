@@ -154,12 +154,14 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     edgeScope: "all",
     edgeTypes: "calls+inherits",
     rankBalance: "balanced",
+    labelMode: "short-kind",
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels, top 5)");
   assert.ok(graph.nodes.length >= 1);
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
+  assert.equal(graph.nodes[0].label, "function: alpha");
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
   assert.ok(calls.some((sql) => sql.includes("(inbound_calls + outbound_calls) DESC")));

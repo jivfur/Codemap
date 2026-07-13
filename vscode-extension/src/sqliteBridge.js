@@ -323,6 +323,18 @@ async function getImpactForSymbol(workspaceRoot, symbol, options = {}) {
   };
 }
 
+function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode) {
+  const qualified = String(qualifiedName || "");
+  if (labelMode === "qualified") {
+    return qualified;
+  }
+
+  const nameParts = qualified.split(".");
+  const shortName = nameParts[nameParts.length - 1] || qualified;
+  const normalizedKind = String(kind || "symbol");
+  return `${normalizedKind}: ${shortName}`;
+}
+
 async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const rawLimit = Number(options.limit || 40);
   const limit = Number.isFinite(rawLimit) ? Math.max(5, Math.min(200, Math.floor(rawLimit))) : 40;
@@ -338,6 +350,8 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const rankBalance = new Set(["inbound", "balanced", "outbound"]).has(rawRankBalance)
     ? rawRankBalance
     : "inbound";
+  const rawLabelMode = String(options.labelMode || "short-kind").toLowerCase();
+  const labelMode = rawLabelMode === "qualified" ? "qualified" : "short-kind";
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
   const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
   const sortExpression =
@@ -382,7 +396,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const selectedNames = topRows.map((row) => row.qualified_name).filter(Boolean);
   const nodes = topRows.map((row, index) => ({
     id: row.qualified_name,
-    label: row.qualified_name,
+    label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode),
     depth: Math.min(2, Math.floor(index / bucketSize)),
     resolution: "resolved",
     kind: row.kind || "symbol",
@@ -390,7 +404,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -417,7 +431,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,

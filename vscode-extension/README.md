@@ -17,6 +17,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - Repo Overview also prompts for edge scope (`resolved` or `all`) to balance confidence vs exploration.
 - Repo Overview now supports edge types (`calls` or `calls+inherits`) to include class hierarchy relationships in overview graphs.
 - Repo Overview includes ranking balance controls (`inbound`, `balanced`, `outbound`) to prioritize hub style in top-symbol selection.
+- Repo Overview includes label mode controls (`qualified` or `short-kind`) to tune readability for dense graphs.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
 - The graph supports pan/zoom and node dragging for denser impact maps.
