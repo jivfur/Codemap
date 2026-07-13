@@ -7,6 +7,8 @@ const path = require("node:path");
 const {
     getGitSnapshotCacheDir,
     getGitSnapshotCachePath,
+    getGitSnapshotCacheRetentionLimit,
+    getGitSnapshotCacheStats,
     listGitSnapshotCacheEntries,
     pruneGitSnapshotCache,
     restoreGitSnapshotCache,
@@ -21,6 +23,7 @@ test("snapshot cache path is keyed by head sha", () => {
     const root = "/tmp/repo";
     assert.equal(getGitSnapshotCacheDir(root), path.join(root, ".codemap", "git-index-cache"));
     assert.equal(getGitSnapshotCachePath(root, "abc123"), path.join(root, ".codemap", "git-index-cache", "abc123.db"));
+    assert.equal(getGitSnapshotCacheRetentionLimit(), 5);
 });
 
 test("saveGitSnapshotCache copies index db into commit cache", async () => {
@@ -90,4 +93,30 @@ test("pruneGitSnapshotCache removes oldest snapshots beyond the limit", async ()
     assert.equal(fs.existsSync(path.join(cacheDir, "old-3.db")), false);
     assert.equal(fs.existsSync(path.join(cacheDir, "old-1.db")), true);
     assert.equal(fs.existsSync(path.join(cacheDir, "old-2.db")), true);
+});
+
+test("getGitSnapshotCacheStats summarizes cache contents", async () => {
+    const root = makeWorkspace();
+    const cacheDir = getGitSnapshotCacheDir(root);
+    fs.mkdirSync(cacheDir, { recursive: true });
+
+    const entries = [
+        { name: "old.db", data: "aaa", offsetMs: 2000 },
+        { name: "new.db", data: "bbbb", offsetMs: 1000 },
+    ];
+
+    for (const entry of entries) {
+        const filePath = path.join(cacheDir, entry.name);
+        fs.writeFileSync(filePath, entry.data, "utf-8");
+        const date = new Date(Date.now() - entry.offsetMs);
+        fs.utimesSync(filePath, date, date);
+    }
+
+    const stats = await getGitSnapshotCacheStats(root);
+    assert.equal(stats.entryCount, 2);
+    assert.equal(stats.totalBytes, 7);
+    assert.equal(stats.newest.headSha, "new");
+    assert.equal(stats.oldest.headSha, "old");
+    assert.equal(stats.entries[0].headSha, "new");
+    assert.equal(stats.entries[1].headSha, "old");
 });

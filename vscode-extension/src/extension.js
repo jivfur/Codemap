@@ -12,7 +12,7 @@ const {
 } = require("./sqliteBridge");
 const { createCallerCodeLensProvider } = require("./codelens");
 const { buildImpactGraphData, openImpactWebviewPanel } = require("./impactWebview");
-const { restoreGitSnapshotCache, saveGitSnapshotCache } = require("./gitSnapshotCache");
+const { getGitSnapshotCacheStats, restoreGitSnapshotCache, saveGitSnapshotCache } = require("./gitSnapshotCache");
 const { createCodemapTreeProvider } = require("./treeView");
 
 const SUPPORTED_EXTENSIONS = new Set([".py", ".js", ".jsx", ".ts", ".tsx"]);
@@ -50,6 +50,50 @@ function formatImpactMarkdown(result) {
   return lines;
 }
 
+function formatByteCount(bytes) {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = Number(bytes || 0);
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function formatGitSnapshotCacheStatsMarkdown(stats) {
+  const lines = ["# Git Snapshot Cache Stats"];
+  lines.push(`- Retention limit: ${stats.retentionLimit}`);
+  lines.push(`- Snapshot count: ${stats.entryCount}`);
+  lines.push(`- Total size: ${formatByteCount(stats.totalBytes)}`);
+
+  if (stats.newest) {
+    lines.push(`- Newest snapshot: ${stats.newest.headSha}`);
+  }
+
+  if (stats.oldest) {
+    lines.push(`- Oldest snapshot: ${stats.oldest.headSha}`);
+  }
+
+  lines.push("");
+  lines.push("| Commit | Size | Modified |");
+  lines.push("|---|---|---|");
+
+  if (stats.entries.length === 0) {
+    lines.push("| _none_ | - | - |");
+    return lines;
+  }
+
+  for (const entry of stats.entries) {
+    const modified = new Date(entry.mtimeMs).toISOString();
+    lines.push(`| ${entry.headSha} | ${formatByteCount(entry.size)} | ${modified} |`);
+  }
+
+  return lines;
+}
+
 function isSupportedSavedDocument(workspaceRoot, document) {
   if (!workspaceRoot || !document?.uri?.fsPath) {
     return false;
@@ -75,6 +119,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
   const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
   const impactWithSqlite = deps.getImpactForSymbol || getImpactForSymbol;
+  const getSnapshotCacheStats = deps.getGitSnapshotCacheStats || getGitSnapshotCacheStats;
   const repoOverviewWithSqlite = deps.getRepoOverviewGraph || getRepoOverviewGraph;
   const listSymbols = deps.listSymbolsForFile || listSymbolsForFile;
   const getNeighbors = deps.getNeighborsForSymbol || getNeighborsForSymbol;
@@ -299,6 +344,21 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         } else if (result === "unavailable") {
           vscodeApi.window.showWarningMessage("Codemap git check failed: unable to resolve HEAD.");
         }
+      })
+    );
+
+    register(
+      context.subscriptions,
+      vscodeApi.commands.registerCommand("codemap.showGitSnapshotCacheStats", async () => {
+        const stats = await getSnapshotCacheStats(root);
+        const doc = await vscodeApi.workspace.openTextDocument({
+          language: "markdown",
+          content: formatGitSnapshotCacheStatsMarkdown(stats).join("\n"),
+        });
+        await vscodeApi.window.showTextDocument(doc, {
+          preview: true,
+          viewColumn: vscodeApi.ViewColumn.Beside,
+        });
       })
     );
 
@@ -839,4 +899,6 @@ module.exports = {
   activateWithApi,
   isSupportedSavedDocument,
   formatImpactMarkdown,
+  formatByteCount,
+  formatGitSnapshotCacheStatsMarkdown,
 };
