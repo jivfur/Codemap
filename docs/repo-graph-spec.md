@@ -265,7 +265,8 @@ Current repository-level extension status includes a bounded repo overview mode
 with symbol kind, top-N size, edge scope, edge-type controls, configurable
 fixed node size, and node-size-mode-aware prompts. The next increment makes the
 multi-step overview prompt flow cancel-safe so `Esc` aborts cleanly without
-opening a graph with defaulted values.
+opening a graph with defaulted values. The following increment adds git-aware
+changed-only reindexing so index freshness tracks checked-out commit changes.
 
 ## Known limitations (by design, not oversights)
 

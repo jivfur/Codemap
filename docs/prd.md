@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #42:
+Completed PR sequence through PR #43:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -105,9 +105,10 @@ Completed PR sequence through PR #42:
   - PR #40: repository overview minimum node size control
   - PR #41: repository overview fixed node size value control
   - PR #42: repository overview conditional size prompts by node-size mode
+  - PR #43: repository overview cancel-safe prompt flow
 
 Current candidate feature:
-- Repository overview cancel-safe prompt flow.
+- Git-aware changed-only reindex on checked-out commit changes.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 
