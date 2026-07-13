@@ -262,8 +262,9 @@ plus the webview for deliberate exploration when you click through — no
 need to keep a graph panel open at all times.
 
 Current repository-level extension status includes a bounded repo overview mode
-with symbol kind, top-N size, edge scope, and edge-type controls; the next
-increment adds configurable fixed node size while keeping the view bounded.
+with symbol kind, top-N size, edge scope, edge-type controls, and configurable
+fixed node size. The next increment streamlines prompt UX by asking only the
+size controls relevant to the selected node-size mode.
 
 ## Known limitations (by design, not oversights)
 
