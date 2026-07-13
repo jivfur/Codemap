@@ -271,6 +271,7 @@ git snapshot restore so clean branch switches can reuse an index snapshot keyed
 by commit SHA instead of rebuilding every time.
 The next increment adds a manual command-palette git update check to trigger an
 immediate reindex after explicit git workflows.
+The next increment after that prunes older snapshots to keep the cache bounded.
 
 ## Known limitations (by design, not oversights)
 
