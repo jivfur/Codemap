@@ -486,5 +486,6 @@ test("openRepoOverview opens repository-wide graph", async () => {
     bucketSize: 10,
     kind: "all",
     edgeScope: "resolved",
+    edgeTypes: "calls",
   });
 });

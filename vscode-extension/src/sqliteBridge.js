@@ -332,7 +332,10 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const kind = new Set(["all", "function", "method", "class", "const"]).has(rawKind) ? rawKind : "all";
   const rawEdgeScope = String(options.edgeScope || "resolved").toLowerCase();
   const edgeScope = rawEdgeScope === "all" ? "all" : "resolved";
+  const rawEdgeTypes = String(options.edgeTypes || "calls").toLowerCase();
+  const edgeTypes = rawEdgeTypes === "calls+inherits" ? "calls+inherits" : "calls";
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
+  const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
 
   const topRows = await queryRows(
     workspaceRoot,
@@ -341,14 +344,14 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
       SELECT dst.id AS symbol_id, COUNT(*) AS count
       FROM edges e
       JOIN symbols dst ON dst.id = e.dst_id
-      WHERE e.edge_type = 'calls'${resolvedOnlyClause}
+      WHERE e.edge_type IN ${edgeTypeClause}${resolvedOnlyClause}
       GROUP BY dst.id
     ),
     outbound AS (
       SELECT src.id AS symbol_id, COUNT(*) AS count
       FROM edges e
       JOIN symbols src ON src.id = e.src_id
-      WHERE e.edge_type = 'calls'${resolvedOnlyClause}
+      WHERE e.edge_type IN ${edgeTypeClause}${resolvedOnlyClause}
       GROUP BY src.id
     )
     SELECT s.qualified_name AS qualified_name,
@@ -376,7 +379,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   }));
 
   if (selectedNames.length === 0) {
-    return { target: `Repository Overview (${kind}, ${edgeScope} edges, top ${limit})`, nodes, edges: [] };
+    return { target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, top ${limit})`, nodes, edges: [] };
   }
 
   const inClause = buildPlaceholders(selectedNames.length);
@@ -389,7 +392,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     FROM edges e
     JOIN symbols src ON src.id = e.src_id
     JOIN symbols dst ON dst.id = e.dst_id
-    WHERE e.edge_type = 'calls'
+    WHERE e.edge_type IN ${edgeTypeClause}
       ${resolvedOnlyClause}
       AND src.qualified_name IN (${inClause})
       AND dst.qualified_name IN (${inClause})
@@ -400,7 +403,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,

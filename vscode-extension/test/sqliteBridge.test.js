@@ -150,15 +150,16 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     bucketSize: 2,
     kind: "function",
     edgeScope: "all",
+    edgeTypes: "calls+inherits",
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, top 5)");
   assert.equal(graph.nodes.length, 3);
   assert.equal(graph.edges.length, 2);
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
   assert.ok(calls.some((sql) => sql.includes("inbound_calls DESC")));
   assert.ok(calls.some((sql) => sql.includes("s.kind = 'function'")));
-  assert.ok(calls.some((sql) => !sql.includes("e.resolved = 1") && sql.includes("WHERE e.edge_type = 'calls'")));
+  assert.ok(calls.some((sql) => !sql.includes("e.resolved = 1") && sql.includes("WHERE e.edge_type IN ('calls', 'inherits')")));
   assert.ok(calls.some((sql) => sql.includes("src.qualified_name IN")));
 });

@@ -40,7 +40,8 @@ How to use this file:
 | 20 | Impact Webview Force Layout Interactions | feat/vscode-impact-force-layout | Merged | Add a force-directed placement pass and interaction controls (pan, zoom, node drag, reset view) for dense impact graphs while preserving click-to-open and depth filtering. | Unit tests validating force-layout and interaction hooks in webview HTML output. | Impact graphs remain navigable under dense caller sets with working node-open behavior. | [PR #24](https://github.com/jivfur/Codemap/pull/24) |
 | 21 | Repo-Wide Graph Overview | feat/vscode-repo-overview | Merged | Add a repository-wide overview command that renders a bounded top-symbol slice of the graph with shared webview interactions, rather than a single-symbol impact closure. | Unit tests for overview query shaping, command wiring, and webview contract. | Users can inspect a broad repo slice without loading the raw full graph into the webview. | [PR #25](https://github.com/jivfur/Codemap/pull/25) |
 | 22 | Repo Overview Filters and Size Controls | feat/vscode-repo-overview-filters | Merged | Add command-time controls for repo overview scope (symbol kind and top-N size), and pass those settings through the overview query and panel title. | Unit tests for query option forwarding and filtered overview output contracts. | Users can tune repo overview breadth without code changes or hardcoded limits. | [PR #26](https://github.com/jivfur/Codemap/pull/26) |
-| 23 | Repo Overview Edge Scope Controls | feat/vscode-repo-overview-edge-scope | In Progress | Add command-time edge scope selection (resolved-only vs all edges) and propagate it through overview query scoring, edge extraction, and panel labels. | Unit tests for option forwarding and query behavior differences by edge scope. | Users can toggle between high-confidence and exploratory overview graphs without code edits. | Branch started |
+| 23 | Repo Overview Edge Scope Controls | feat/vscode-repo-overview-edge-scope | Merged | Add command-time edge scope selection (resolved-only vs all edges) and propagate it through overview query scoring, edge extraction, and panel labels. | Unit tests for option forwarding and query behavior differences by edge scope. | Users can toggle between high-confidence and exploratory overview graphs without code edits. | [PR #27](https://github.com/jivfur/Codemap/pull/27) |
+| 24 | Repo Overview Edge Type Controls | feat/vscode-repo-overview-edge-types | In Progress | Add command-time edge type selection (calls-only vs calls+inherits) and propagate it through overview ranking, edge extraction, and panel labels. | Unit tests for option forwarding and SQL filtering by edge type mode. | Users can include inheritance structure in repo overviews without loading a raw full graph. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -52,5 +53,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 23: Repo Overview Edge Scope Controls
-- Branch: feat/vscode-repo-overview-edge-scope
+- PR 24: Repo Overview Edge Type Controls
+- Branch: feat/vscode-repo-overview-edge-types
