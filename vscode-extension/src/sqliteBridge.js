@@ -343,9 +343,9 @@ function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode, maxLabelLen
   return truncateLabel(`${normalizedKind}: ${shortName}`, maxLabelLength);
 }
 
-function computeRepoOverviewNodeSize(row, nodeSizeMode, minNodeSize, maxNodeSize) {
+function computeRepoOverviewNodeSize(row, nodeSizeMode, minNodeSize, maxNodeSize, fixedNodeSize) {
   if (nodeSizeMode === "fixed") {
-    return 11;
+    return fixedNodeSize;
   }
   const inbound = Number(row?.inbound_calls || 0);
   const outbound = Number(row?.outbound_calls || 0);
@@ -378,6 +378,10 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const labelMode = rawLabelMode === "qualified" ? "qualified" : "short-kind";
   const rawNodeSizeMode = String(options.nodeSizeMode || "degree").toLowerCase();
   const nodeSizeMode = rawNodeSizeMode === "fixed" ? "fixed" : "degree";
+  const rawFixedNodeSize = Number(options.fixedNodeSize || 11);
+  const fixedNodeSize = Number.isFinite(rawFixedNodeSize)
+    ? Math.max(6, Math.min(40, Math.floor(rawFixedNodeSize)))
+    : 11;
   const rawMinNodeSize = Number(options.minNodeSize || 9);
   const minNodeSizeBase = Number.isFinite(rawMinNodeSize)
     ? Math.max(9, Math.min(60, Math.floor(rawMinNodeSize)))
@@ -455,15 +459,19 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     fullLabel: row.qualified_name,
     inboundCalls: Number(row.inbound_calls || 0),
     outboundCalls: Number(row.outbound_calls || 0),
-    size: computeRepoOverviewNodeSize(row, nodeSizeMode, minNodeSize, maxNodeSize),
+    size: computeRepoOverviewNodeSize(row, nodeSizeMode, minNodeSize, maxNodeSize, fixedNodeSize),
     depth: Math.min(maxDepthBand, Math.floor(index / bucketSize)),
     resolution: "resolved",
     kind: row.kind || "symbol",
   }));
 
+  const sizeDescriptor = nodeSizeMode === "fixed"
+    ? `fixed size=${fixedNodeSize}`
+    : `size=${minNodeSize}-${maxNodeSize}`;
+
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size=${minNodeSize}-${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${sizeDescriptor}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -490,7 +498,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size=${minNodeSize}-${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${sizeDescriptor}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,

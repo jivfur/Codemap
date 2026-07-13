@@ -156,7 +156,8 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     edgeTypes: "calls+inherits",
     rankBalance: "balanced",
     labelMode: "short-kind",
-    nodeSizeMode: "degree",
+    nodeSizeMode: "fixed",
+    fixedNodeSize: 13,
     minNodeSize: 10,
     maxNodeSize: 16,
     maxLabelLength: 12,
@@ -165,7 +166,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     minOutboundCalls: 1,
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size=10-16, min degree>=3, min inbound>=2, min outbound>=1, depth buckets=3, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, fixed size=13, min degree>=3, min inbound>=2, min outbound>=1, depth buckets=3, top 5)");
   assert.ok(graph.nodes.length >= 1);
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
@@ -174,8 +175,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
   assert.equal(graph.nodes[0].inboundCalls, 7);
   assert.equal(graph.nodes[0].outboundCalls, 3);
   assert.equal(typeof graph.nodes[0].size, "number");
-  assert.ok(graph.nodes[0].size >= 10);
-  assert.ok(graph.nodes[0].size <= 16);
+  assert.equal(graph.nodes[0].size, 13);
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
   assert.ok(calls.some((sql) => sql.includes("(inbound_calls + outbound_calls) DESC")));
