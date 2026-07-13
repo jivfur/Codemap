@@ -42,7 +42,8 @@ How to use this file:
 | 22 | Repo Overview Filters and Size Controls | feat/vscode-repo-overview-filters | Merged | Add command-time controls for repo overview scope (symbol kind and top-N size), and pass those settings through the overview query and panel title. | Unit tests for query option forwarding and filtered overview output contracts. | Users can tune repo overview breadth without code changes or hardcoded limits. | [PR #26](https://github.com/jivfur/Codemap/pull/26) |
 | 23 | Repo Overview Edge Scope Controls | feat/vscode-repo-overview-edge-scope | Merged | Add command-time edge scope selection (resolved-only vs all edges) and propagate it through overview query scoring, edge extraction, and panel labels. | Unit tests for option forwarding and query behavior differences by edge scope. | Users can toggle between high-confidence and exploratory overview graphs without code edits. | [PR #27](https://github.com/jivfur/Codemap/pull/27) |
 | 24 | Repo Overview Edge Type Controls | feat/vscode-repo-overview-edge-types | Merged | Add command-time edge type selection (calls-only vs calls+inherits) and propagate it through overview ranking, edge extraction, and panel labels. | Unit tests for option forwarding and SQL filtering by edge type mode. | Users can include inheritance structure in repo overviews without loading a raw full graph. | [PR #28](https://github.com/jivfur/Codemap/pull/28) |
-| 25 | Repo Overview Ranking Balance Controls | feat/vscode-repo-overview-balance | In Progress | Add command-time ranking balance selection (inbound-heavy, balanced, outbound-heavy) and propagate it through overview ranking sort and panel labels. | Unit tests for option forwarding and SQL order expression changes by ranking mode. | Users can choose which graph centrality bias shapes the top-symbol repo overview. | Branch started |
+| 25 | Repo Overview Ranking Balance Controls | feat/vscode-repo-overview-balance | Merged | Add command-time ranking balance selection (inbound-heavy, balanced, outbound-heavy) and propagate it through overview ranking sort and panel labels. | Unit tests for option forwarding and SQL order expression changes by ranking mode. | Users can choose which graph centrality bias shapes the top-symbol repo overview. | [PR #29](https://github.com/jivfur/Codemap/pull/29) |
+| 26 | Repo Overview Node Label Modes | feat/vscode-repo-overview-kind-labels | In Progress | Add command-time node label mode selection (qualified vs short-kind) and propagate it through overview node labels and panel metadata. | Unit tests for option forwarding and node label formatting. | Users can choose compact readable labels in dense overviews without losing stable symbol identity. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -54,5 +55,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 25: Repo Overview Ranking Balance Controls
-- Branch: feat/vscode-repo-overview-balance
+- PR 26: Repo Overview Node Label Modes
+- Branch: feat/vscode-repo-overview-kind-labels
