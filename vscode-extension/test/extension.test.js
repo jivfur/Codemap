@@ -481,5 +481,10 @@ test("openRepoOverview opens repository-wide graph", async () => {
   assert.equal(fake.webviewPanels.length, 1);
   assert.ok(fake.webviewPanels[0].title.includes("Repository Overview"));
   assert.ok(fake.webviewPanels[0].webview.html.includes("Repository Overview"));
-  assert.deepEqual(receivedOptions, { limit: 40, bucketSize: 10, kind: "all" });
+  assert.deepEqual(receivedOptions, {
+    limit: 40,
+    bucketSize: 10,
+    kind: "all",
+    edgeScope: "resolved",
+  });
 });

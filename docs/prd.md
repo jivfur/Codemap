@@ -90,7 +90,7 @@ Completed PR sequence through PR #25:
   - PR #25: repository overview mode
 
 Current candidate feature:
-- Repository overview controls (top-N size and symbol kind filters) to tune broad graph exploration.
+- Repository overview edge scope controls (resolved-only vs all edges) to switch between high-confidence and exploratory views.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 
