@@ -23,6 +23,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - Node hover tooltips show full qualified symbol names even when visible labels are truncated.
 - Hover tooltips also show node kind and inbound/outbound call counts for quick structural context.
 - Repo Overview includes a minimum degree filter to exclude low-connectivity symbols from dense overviews.
+- Repo Overview includes a minimum inbound-calls filter to focus on highly reused symbols.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
 - The graph supports pan/zoom and node dragging for denser impact maps.

@@ -158,9 +158,10 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     nodeSizeMode: "degree",
     maxLabelLength: 12,
     minDegree: 3,
+    minInboundCalls: 2,
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size, min degree>=3, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size, min degree>=3, min inbound>=2, top 5)");
   assert.ok(graph.nodes.length >= 1);
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
@@ -179,6 +180,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
         sql.includes(">= 3")
     )
   );
+  assert.ok(calls.some((sql) => sql.includes("COALESCE(inbound.count, 0) >= 2")));
   assert.ok(calls.some((sql) => sql.includes("s.kind = 'function'")));
   assert.ok(calls.some((sql) => !sql.includes("e.resolved = 1") && sql.includes("WHERE e.edge_type IN ('calls', 'inherits')")));
   assert.ok(calls.some((sql) => sql.includes("src.qualified_name IN")));

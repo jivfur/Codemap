@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #34:
+Completed PR sequence through PR #35:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -97,9 +97,10 @@ Completed PR sequence through PR #34:
   - PR #32: repository overview max label length control
   - PR #33: repository overview full-label hover tooltips
   - PR #34: repository overview hover tooltip metrics
+  - PR #35: repository overview minimum degree filter
 
 Current candidate feature:
-- Repository overview minimum degree filter to reduce low-signal nodes in dense graph slices.
+- Repository overview minimum inbound-call filter to emphasize heavily reused symbols.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

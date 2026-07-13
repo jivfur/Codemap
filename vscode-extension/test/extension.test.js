@@ -492,5 +492,6 @@ test("openRepoOverview opens repository-wide graph", async () => {
     nodeSizeMode: "degree",
     maxLabelLength: 28,
     minDegree: 0,
+    minInboundCalls: 0,
   });
 });
