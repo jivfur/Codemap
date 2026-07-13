@@ -36,6 +36,7 @@ test("renderImpactWebviewHtml embeds target and script payload", () => {
   assert.ok(html.includes("resetViewButton"));
   assert.ok(html.includes("renderGraph("));
   assert.ok(html.includes("runForceLayout("));
+  assert.ok(html.includes("resolveNodeRadius("));
   assert.ok(html.includes("pointermove"));
   assert.ok(html.includes("node-circle"));
   assert.ok(html.includes("openSymbol"));

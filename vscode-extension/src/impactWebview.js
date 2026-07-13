@@ -156,6 +156,17 @@ function renderImpactWebviewHtml(graphData) {
         return 'node-unresolved';
       }
 
+      function resolveNodeRadius(node) {
+        if (node.resolution === 'target') {
+          return 14;
+        }
+        const size = Number(node.size);
+        if (!Number.isFinite(size)) {
+          return 11;
+        }
+        return clamp(size, 8, 24);
+      }
+
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
       }
@@ -318,7 +329,7 @@ function renderImpactWebviewHtml(graphData) {
           const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
           circle.setAttribute('cx', String(position.x));
           circle.setAttribute('cy', String(position.y));
-          circle.setAttribute('r', node.resolution === 'target' ? '14' : '11');
+          circle.setAttribute('r', String(resolveNodeRadius(node)));
           circle.setAttribute('class', 'node-circle ' + nodeClass(node));
           circle.setAttribute('data-symbol', esc(node.id));
           circle.addEventListener('pointerdown', (event) => {
