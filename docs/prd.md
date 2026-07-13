@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #35:
+Completed PR sequence through PR #36:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -98,9 +98,10 @@ Completed PR sequence through PR #35:
   - PR #33: repository overview full-label hover tooltips
   - PR #34: repository overview hover tooltip metrics
   - PR #35: repository overview minimum degree filter
+  - PR #36: repository overview minimum inbound-call filter
 
 Current candidate feature:
-- Repository overview minimum inbound-call filter to emphasize heavily reused symbols.
+- Repository overview minimum outbound-call filter to emphasize coordinator-style symbols.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

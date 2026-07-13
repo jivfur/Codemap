@@ -49,7 +49,8 @@ How to use this file:
 | 29 | Repo Overview Full-Label Hover Tooltips | feat/vscode-repo-overview-hover-labels | Merged | Preserve full qualified symbol labels in graph payload and show them on node hover while keeping truncated visible labels. | Unit tests for payload `fullLabel` field and webview tooltip render markers. | Users can inspect exact symbol identity on hover without expanding graph label text. | [PR #33](https://github.com/jivfur/Codemap/pull/33) |
 | 30 | Repo Overview Tooltip Metrics | feat/vscode-repo-overview-min-degree | Merged | Enrich node hover tooltips with symbol kind and inbound/outbound call counts from overview ranking output. | Unit tests for tooltip render markers and node metric fields in overview payload. | Users can read core graph context from hover state without expanding labels or changing filters. | [PR #34](https://github.com/jivfur/Codemap/pull/34) |
 | 31 | Repo Overview Minimum Degree Filter | feat/vscode-repo-overview-min-degree | Merged | Add command-time minimum degree filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL degree-threshold filtering behavior. | Users can remove low-connectivity nodes from overview slices without changing top-N controls. | [PR #35](https://github.com/jivfur/Codemap/pull/35) |
-| 32 | Repo Overview Minimum Inbound Filter | feat/vscode-repo-overview-min-inbound | In Progress | Add command-time minimum inbound-call filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL inbound-threshold filtering behavior. | Users can bias overview slices toward heavily reused symbols without changing rank mode. | Branch started |
+| 32 | Repo Overview Minimum Inbound Filter | feat/vscode-repo-overview-min-inbound | Merged | Add command-time minimum inbound-call filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL inbound-threshold filtering behavior. | Users can bias overview slices toward heavily reused symbols without changing rank mode. | [PR #36](https://github.com/jivfur/Codemap/pull/36) |
+| 33 | Repo Overview Minimum Outbound Filter | feat/vscode-repo-overview-min-outbound | In Progress | Add command-time minimum outbound-call filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL outbound-threshold filtering behavior. | Users can bias overview slices toward coordinator-style symbols without changing rank mode. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -61,5 +62,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 32: Repo Overview Minimum Inbound Filter
-- Branch: feat/vscode-repo-overview-min-inbound
+- PR 33: Repo Overview Minimum Outbound Filter
+- Branch: feat/vscode-repo-overview-min-outbound

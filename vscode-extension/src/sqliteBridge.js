@@ -385,6 +385,10 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const minInboundCalls = Number.isFinite(rawMinInboundCalls)
     ? Math.max(0, Math.min(10000, Math.floor(rawMinInboundCalls)))
     : 0;
+  const rawMinOutboundCalls = Number(options.minOutboundCalls || 0);
+  const minOutboundCalls = Number.isFinite(rawMinOutboundCalls)
+    ? Math.max(0, Math.min(10000, Math.floor(rawMinOutboundCalls)))
+    : 0;
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
   const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
   const sortExpression =
@@ -421,10 +425,11 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
         WHERE (? = 'all' OR s.kind = ?)
       AND (COALESCE(inbound.count, 0) + COALESCE(outbound.count, 0)) >= ?
       AND COALESCE(inbound.count, 0) >= ?
+      AND COALESCE(outbound.count, 0) >= ?
     ORDER BY ${sortExpression}
     LIMIT ?
     `,
-    [kind, kind, minDegree, minInboundCalls, limit],
+    [kind, kind, minDegree, minInboundCalls, minOutboundCalls, limit],
     options
   );
 
@@ -443,7 +448,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -470,7 +475,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,
