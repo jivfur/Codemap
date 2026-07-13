@@ -485,6 +485,17 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ? Math.max(0, Math.min(10000, Math.floor(parsedMinInbound)))
         : 0;
 
+      const minOutboundInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Minimum Outbound Calls",
+        prompt: "Minimum outbound call count for included nodes",
+        value: "0",
+        ignoreFocusOut: true,
+      });
+      const parsedMinOutbound = Number(minOutboundInput);
+      const minOutboundCalls = Number.isFinite(parsedMinOutbound)
+        ? Math.max(0, Math.min(10000, Math.floor(parsedMinOutbound)))
+        : 0;
+
       const topInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Size",
         prompt: "How many top symbols to include?",
@@ -508,6 +519,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           maxLabelLength,
           minDegree,
           minInboundCalls,
+          minOutboundCalls,
         });
         if (!overview || overview.nodes.length === 0) {
           vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
@@ -521,7 +533,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, top ${limit})`,
           }
         );
       } catch (error) {
