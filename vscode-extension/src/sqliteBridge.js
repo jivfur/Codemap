@@ -377,6 +377,10 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const maxLabelLength = Number.isFinite(rawMaxLabelLength)
     ? Math.max(8, Math.min(120, Math.floor(rawMaxLabelLength)))
     : 28;
+  const rawMinDegree = Number(options.minDegree || 0);
+  const minDegree = Number.isFinite(rawMinDegree)
+    ? Math.max(0, Math.min(10000, Math.floor(rawMinDegree)))
+    : 0;
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
   const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
   const sortExpression =
@@ -411,10 +415,11 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     LEFT JOIN inbound ON inbound.symbol_id = s.id
     LEFT JOIN outbound ON outbound.symbol_id = s.id
         WHERE (? = 'all' OR s.kind = ?)
+      AND (COALESCE(inbound.count, 0) + COALESCE(outbound.count, 0)) >= ?
     ORDER BY ${sortExpression}
     LIMIT ?
     `,
-        [kind, kind, limit],
+    [kind, kind, minDegree, limit],
     options
   );
 
@@ -433,7 +438,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -460,7 +465,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,
