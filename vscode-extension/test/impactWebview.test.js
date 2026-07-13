@@ -20,6 +20,7 @@ test("buildImpactGraphData creates nodes and edges", () => {
   assert.equal(graph.nodes.length, 3);
   assert.equal(graph.edges.length, 2);
   assert.equal(graph.nodes[0].id, "pkg.mod.target");
+  assert.equal(graph.nodes[0].fullLabel, "pkg.mod.target");
 });
 
 test("renderImpactWebviewHtml embeds target and script payload", () => {
@@ -37,6 +38,8 @@ test("renderImpactWebviewHtml embeds target and script payload", () => {
   assert.ok(html.includes("renderGraph("));
   assert.ok(html.includes("runForceLayout("));
   assert.ok(html.includes("resolveNodeRadius("));
+  assert.ok(html.includes("node.fullLabel || node.id"));
+  assert.ok(html.includes("createElementNS('http://www.w3.org/2000/svg', 'title')"));
   assert.ok(html.includes("pointermove"));
   assert.ok(html.includes("node-circle"));
   assert.ok(html.includes("openSymbol"));
