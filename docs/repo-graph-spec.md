@@ -7,6 +7,8 @@ SQLite, so an LLM (or a human) can find and reason about relevant code
 without loading the whole repo into context. Read structure first, pull in
 actual source lines only for the handful of symbols that matter.
 
+Product requirements and delivery status are tracked in `docs/prd.md`.
+
 ## Deterministic vs AI-assisted
 
 The graph itself is built entirely with **deterministic static analysis** —
@@ -218,11 +220,19 @@ repo-graph/
 VS Code has good native primitives for surfacing this graph directly in
 the editor, no separate app needed.
 
+Implementation status (as of 2026-07-12):
+- Implemented: Sidebar TreeView, Command Palette flows, on-save changed-only
+  reindex, CodeLens caller counts, impact webview, and SQLite-backed read
+  queries.
+- Implemented: CodeLens to impact-webview flow, single webview panel reuse,
+  SVG graph rendering, and max-depth filtering in the webview.
+- Not yet implemented: a full force-directed graph library (the current
+  implementation uses deterministic, dependency-free SVG rendering).
+
 **UI surfaces:**
 - **Webview panel** — the main interactive graph view. Render a subgraph
-  (Cytoscape.js or D3) centered on the current file/symbol; click a node
-  to jump straight to that file and line; filter to "show impact of this
-  symbol" or "show what this file imports."
+  centered on the current file/symbol; click a node to jump straight to
+  that file and line; filter by max impact depth.
 - **Sidebar TreeView** — a lighter always-visible panel: symbols in the
   current file plus their direct callers/callees, similar to VS Code's
   built-in Outline view but backed by the graph instead of just the AST
@@ -266,11 +276,3 @@ increment adds configurable minimum node size while keeping the view bounded.
 - Multi-language repos: cross-language calls (e.g. Python calling into a
   Rust extension via FFI) won't be linked automatically; would need a
   manual edge or a naming convention to bridge them.
-
----
-
-Ready to build this whenever you want — happy to start with a 2-3
-language subset (say Python + JS/TS) and expand from there once the core
-pipeline works. Also happy to scaffold the VS Code extension itself
-(package.json, extension.ts, webview) once the indexer exists for it to
-call.

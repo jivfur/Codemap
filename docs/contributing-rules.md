@@ -29,6 +29,14 @@ These are the baseline engineering rules for Codemap.
 4. PR descriptions should include what changed, why it changed, and how it was validated.
 5. If a PR intentionally skips a test or leaves known risk, it must document the reason and follow-up plan.
 
+## Roadmap Governance
+
+1. New implementation work must map to an explicit item in `docs/pr-roadmap.md`.
+2. New roadmap items must align with scope and success criteria in `docs/prd.md`.
+3. Do not start a new implementation branch unless the roadmap has a queued next item.
+4. If scope is split into additional micro-PRs, update the roadmap first and document the reason in the PR description.
+5. After merge, update roadmap status and links (`In Progress` -> `Merged`, PR link, and next-item pointer) before starting the next branch.
+
 ## Definition of Done
 
 A change is done only when:
