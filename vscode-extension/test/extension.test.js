@@ -64,7 +64,7 @@ function makeFakeVscode() {
         this.listeners = [];
         this.event = (listener) => {
           this.listeners.push(listener);
-          return { dispose: () => {} };
+          return { dispose: () => { } };
         };
       }
       fire(value) {
@@ -80,25 +80,25 @@ function makeFakeVscode() {
       },
       onDidSaveTextDocument: (listener) => {
         saveDocumentListeners.push(listener);
-        return { dispose: () => {} };
+        return { dispose: () => { } };
       },
     },
     commands: {
       registerCommand: (id, fn) => {
         registered.set(id, fn);
-        return { dispose: () => {} };
+        return { dispose: () => { } };
       },
     },
     languages: {
       registerCodeLensProvider: (selector, provider) => {
         codeLensRegistrations.push({ selector, provider });
-        return { dispose: () => {} };
+        return { dispose: () => { } };
       },
     },
     window: {
       showInputBox: async () => "run",
       showQuickPick: async () => null,
-      showTextDocument: async () => {},
+      showTextDocument: async () => { },
       showInformationMessage: async (m) => {
         infoMessages.push(m);
       },
@@ -110,16 +110,16 @@ function makeFakeVscode() {
       },
       setStatusBarMessage: (text) => {
         statusMessages.push(text);
-        return { dispose: () => {} };
+        return { dispose: () => { } };
       },
       createTreeView: (id, options) => {
-        const tree = { id, options, dispose: () => {} };
+        const tree = { id, options, dispose: () => { } };
         treeViews.push(tree);
         return tree;
       },
       onDidChangeActiveTextEditor: (listener) => {
         activeEditorListeners.push(listener);
-        return { dispose: () => {} };
+        return { dispose: () => { } };
       },
       createWebviewPanel: (viewType, title, viewColumn, options) => {
         const panel = {
@@ -127,8 +127,8 @@ function makeFakeVscode() {
           title,
           viewColumn,
           options,
-          reveal: () => {},
-          onDidDispose: () => {},
+          reveal: () => { },
+          onDidDispose: () => { },
           webview: {
             html: "",
             onDidReceiveMessage: (handler) => {
@@ -208,7 +208,7 @@ test("index command reports first output line", async () => {
 test("search command uses sqlite rows", async () => {
   const fake = makeFakeVscode();
   fake.api.window.showQuickPick = async (items) => items[0] || null;
-  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => { } });
   const context = { subscriptions: [] };
 
   activateWithApi(fake.api, context, {
@@ -285,7 +285,7 @@ test("find symbol command prompts and opens selection", async () => {
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
   fake.api.window.showQuickPick = async (items) => items[0] || null;
-  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => { } });
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: [] }),
@@ -381,7 +381,7 @@ test("showCallersForSymbol command opens resolved selection", async () => {
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
   fake.api.window.showQuickPick = async (items) => items[0] || null;
-  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => { } });
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: [] }),
@@ -411,7 +411,7 @@ test("openImpactWebview creates panel and opens message symbol", async () => {
   __resetImpactWebviewPanelForTests();
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
-  fake.api.window.showTextDocument = async () => ({ revealRange: () => {} });
+  fake.api.window.showTextDocument = async () => ({ revealRange: () => { } });
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: [] }),
@@ -491,5 +491,6 @@ test("openRepoOverview opens repository-wide graph", async () => {
     labelMode: "short-kind",
     nodeSizeMode: "degree",
     maxLabelLength: 28,
+    minDegree: 0,
   });
 });

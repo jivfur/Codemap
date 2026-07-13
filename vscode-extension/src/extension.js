@@ -360,10 +360,10 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       const symbol = initialSymbol
         ? String(initialSymbol)
         : await vscodeApi.window.showInputBox({
-            title: "Repo Graph: Open Impact Webview",
-            prompt: "Enter qualified or short symbol name",
-            ignoreFocusOut: true,
-          });
+          title: "Repo Graph: Open Impact Webview",
+          prompt: "Enter qualified or short symbol name",
+          ignoreFocusOut: true,
+        });
 
       if (!symbol) {
         return;
@@ -463,6 +463,17 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ? Math.max(8, Math.min(120, Math.floor(parsedLabelLength)))
         : 28;
 
+      const minDegreeInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Minimum Degree",
+        prompt: "Minimum total calls (inbound + outbound) for included nodes",
+        value: "0",
+        ignoreFocusOut: true,
+      });
+      const parsedMinDegree = Number(minDegreeInput);
+      const minDegree = Number.isFinite(parsedMinDegree)
+        ? Math.max(0, Math.min(10000, Math.floor(parsedMinDegree)))
+        : 0;
+
       const topInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Size",
         prompt: "How many top symbols to include?",
@@ -484,6 +495,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           labelMode: selectedLabelMode,
           nodeSizeMode: selectedNodeSizeMode,
           maxLabelLength,
+          minDegree,
         });
         if (!overview || overview.nodes.length === 0) {
           vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
@@ -497,7 +509,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, min degree>=${minDegree}, top ${limit})`,
           }
         );
       } catch (error) {
@@ -571,7 +583,7 @@ function activate(context) {
   return activateWithApi(vscode, context);
 }
 
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
   activate,
