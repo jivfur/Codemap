@@ -334,8 +334,18 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const edgeScope = rawEdgeScope === "all" ? "all" : "resolved";
   const rawEdgeTypes = String(options.edgeTypes || "calls").toLowerCase();
   const edgeTypes = rawEdgeTypes === "calls+inherits" ? "calls+inherits" : "calls";
+  const rawRankBalance = String(options.rankBalance || "inbound").toLowerCase();
+  const rankBalance = new Set(["inbound", "balanced", "outbound"]).has(rawRankBalance)
+    ? rawRankBalance
+    : "inbound";
   const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
   const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
+  const sortExpression =
+    rankBalance === "outbound"
+      ? "outbound_calls DESC, inbound_calls DESC, s.qualified_name"
+      : rankBalance === "balanced"
+        ? "(inbound_calls + outbound_calls) DESC, inbound_calls DESC, outbound_calls DESC, s.qualified_name"
+        : "inbound_calls DESC, outbound_calls DESC, s.qualified_name";
 
   const topRows = await queryRows(
     workspaceRoot,
@@ -362,7 +372,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     LEFT JOIN inbound ON inbound.symbol_id = s.id
     LEFT JOIN outbound ON outbound.symbol_id = s.id
         WHERE (? = 'all' OR s.kind = ?)
-    ORDER BY inbound_calls DESC, outbound_calls DESC, s.qualified_name
+    ORDER BY ${sortExpression}
     LIMIT ?
     `,
         [kind, kind, limit],
@@ -379,7 +389,11 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   }));
 
   if (selectedNames.length === 0) {
-    return { target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, top ${limit})`, nodes, edges: [] };
+    return {
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, top ${limit})`,
+      nodes,
+      edges: [],
+    };
   }
 
   const inClause = buildPlaceholders(selectedNames.length);
@@ -403,7 +417,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,

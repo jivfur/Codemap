@@ -487,5 +487,6 @@ test("openRepoOverview opens repository-wide graph", async () => {
     kind: "all",
     edgeScope: "resolved",
     edgeTypes: "calls",
+    rankBalance: "inbound",
   });
 });
