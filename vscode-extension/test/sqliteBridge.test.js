@@ -150,6 +150,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     runner: fakeRunner,
     limit: 3,
     bucketSize: 2,
+    depthBuckets: 3,
     kind: "function",
     edgeScope: "all",
     edgeTypes: "calls+inherits",
@@ -162,7 +163,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     minOutboundCalls: 1,
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size, min degree>=3, min inbound>=2, min outbound>=1, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size, min degree>=3, min inbound>=2, min outbound>=1, depth buckets=3, top 5)");
   assert.ok(graph.nodes.length >= 1);
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);

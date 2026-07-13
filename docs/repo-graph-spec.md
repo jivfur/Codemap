@@ -253,7 +253,7 @@ need to keep a graph panel open at all times.
 
 Current repository-level extension status includes a bounded repo overview mode
 with symbol kind, top-N size, edge scope, and edge-type controls; the next
-increment adds a minimum outbound-call filter while keeping the view bounded.
+increment adds configurable depth buckets while keeping the view bounded.
 
 ## Known limitations (by design, not oversights)
 
