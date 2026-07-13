@@ -1,63 +1,173 @@
-# Codemap VS Code Extension Scaffold
+# Codemap VS Code Extension
 
-This folder contains the initial scaffold for a VS Code extension that bridges to the existing `graph.py` CLI.
+Codemap helps you explore a repository as a graph of symbols and relationships directly in VS Code.
 
-## Commands
+It is built for two workflows:
 
-- `Codemap: Index Workspace` runs `python3 graph.py index` in the workspace root.
-- `Codemap: Search Symbol` reads the SQLite index directly and shows results in a quick pick.
-- `Codemap: Show Symbol Body` resolves symbol location from SQLite and opens the extracted body in a preview editor.
-- `Codemap Neighbors` view in Explorer shows symbols for the active file and expandable caller/callee groups.
-- `Repo Graph: Find Symbol` runs an interactive symbol search and jumps to the selected result.
-- `Repo Graph: Show Impact` renders a structured reverse-dependency report for a symbol.
-- `Repo Graph: Reindex Workspace` runs a changed-only index refresh from the command palette.
-- `Repo Graph: Open Impact Webview` opens a lightweight SVG impact graph with clickable nodes.
-- `Repo Graph: Open Repo Overview` opens a bounded repository-wide overview slice for the top-ranked symbols.
-- Repo Overview prompts for symbol kind and top-N size so you can tune breadth before rendering.
-- Repo Overview also prompts for edge scope (`resolved` or `all`) to balance confidence vs exploration.
-- Repo Overview now supports edge types (`calls` or `calls+inherits`) to include class hierarchy relationships in overview graphs.
-- Repo Overview includes ranking balance controls (`inbound`, `balanced`, `outbound`) to prioritize hub style in top-symbol selection.
-- Repo Overview includes label mode controls (`qualified` or `short-kind`) to tune readability for dense graphs.
-- Repo Overview includes node size controls (`degree` or `fixed`) to emphasize structurally central symbols.
-- Repo Overview includes max label length control to keep node text readable in dense views.
-- Node hover tooltips show full qualified symbol names even when visible labels are truncated.
-- Hover tooltips also show node kind and inbound/outbound call counts for quick structural context.
-- Repo Overview includes a minimum degree filter to exclude low-connectivity symbols from dense overviews.
-- Repo Overview includes a minimum inbound-calls filter to focus on highly reused symbols.
-- Repo Overview includes a minimum outbound-calls filter to focus on high-fanout symbols.
-- Repo Overview includes configurable depth buckets to tune how ranking bands map to visual depth.
-- Repo Overview includes maximum node size control to cap degree-weighted hub emphasis.
-- Repo Overview includes minimum node size control to keep low-degree nodes readable.
-- Repo Overview includes fixed node size value control to tune fixed-size mode radius.
-- Re-running impact webview commands reuses the same panel and refreshes its graph.
-- The webview supports max-depth filtering to focus exploration on near callers first.
-- The graph supports pan/zoom and node dragging for denser impact maps.
+1. Human-first navigation (find symbols, inspect impact, open graph views).
+2. AI-assisted navigation (have an assistant ask Codemap-focused questions and work from graph results instead of scanning entire files).
+
+## What You Get
+
+- Command palette actions for indexing, search, impact analysis, and repository overview graphs.
+- A `Codemap Neighbors` explorer tree for the active file's symbols and their callers/callees.
+- Impact and overview webviews with pan/zoom/drag and clickable nodes.
+- On-save incremental reindex for supported source files.
+
+## Prerequisites
+
+- VS Code 1.90+
+- Python 3 available in your shell as `python3`
+- A workspace folder open in VS Code (single-root is recommended)
+- `graph.py` and `index.db` expected at the workspace root
+
+## Install
+
+If you already have a VSIX build:
+
+1. Open VS Code.
+2. Open Extensions view.
+3. Click `...` (top-right in Extensions).
+4. Choose `Install from VSIX...`.
+5. Select the extension VSIX file.
+
+## Quick Start
+
+1. Run `Codemap: Index Workspace`.
+2. Open `Repo Graph: Find Symbol` and search for a target symbol.
+3. Run `Repo Graph: Show Impact` to see reverse dependencies as a table.
+4. Run `Repo Graph: Open Impact Webview` for an interactive graph.
+5. Run `Repo Graph: Open Repo Overview` to get a repo-wide top-symbol map.
+
+## Command Guide
+
+- `Codemap: Index Workspace`
+	- Full index of the workspace.
+- `Repo Graph: Reindex Workspace`
+	- Incremental reindex (`index --changed-only`).
+- `Codemap: Search Symbol`
+	- Search symbols from SQLite and jump to source.
+- `Repo Graph: Find Symbol`
+	- Similar to search, tuned for repo-graph workflows.
+- `Codemap: Show Symbol Body`
+	- Opens extracted symbol body in a preview editor.
+- `Repo Graph: Show Impact`
+	- Markdown report of callers by depth.
+- `Repo Graph: Open Impact Webview`
+	- Interactive graph for one symbol.
+- `Repo Graph: Open Repo Overview`
+	- Interactive top-N repository overview with tunable ranking and filtering.
+- `Codemap: Refresh Neighbors`
+	- Refreshes the `Codemap Neighbors` side view.
+
+## Repo Overview Options (What They Mean)
+
+When you run `Repo Graph: Open Repo Overview`, Codemap asks a sequence of prompts:
+
+- Symbol kind: `all`, `function`, `method`, `class`
+- Edge scope: `resolved` only or `all` (includes unresolved)
+- Edge types: `calls` or `calls+inherits`
+- Ranking balance: `inbound`, `balanced`, `outbound`
+- Label mode: `qualified` or `short-kind`
+- Node size mode: `degree` or `fixed`
+- Fixed node size value (when fixed mode is selected)
+- Min/max node sizes (for degree mode)
+- Max label length
+- Minimum degree, inbound calls, outbound calls filters
+- Top-N limit
+- Depth buckets
+
+These controls let you tune the graph for signal density and readability.
+
+## Sidebar + CodeLens
+
+- `Codemap Neighbors` (Explorer view):
+	- Updates with active editor changes.
+	- Lets you expand symbol relationships quickly.
+- Caller CodeLens:
+	- Supported languages: Python, JavaScript, TypeScript.
+	- Shows `Called from N places` above functions/methods.
+	- Click to open graph context for that symbol.
 
 ## On-Save Reindex
 
-- Saving supported source files (`.py`, `.js`, `.jsx`, `.ts`, `.tsx`) triggers a debounced background `index --changed-only` run.
-- Reindex notifications are surfaced as lightweight status bar messages.
-- Non-supported files are ignored to avoid unnecessary indexing work.
+Saving these file types triggers debounced background reindex:
 
-## Sidebar TreeView
+- `.py`
+- `.js`
+- `.jsx`
+- `.ts`
+- `.tsx`
 
-- The tree refreshes when the active editor changes.
-- Clicking a resolved symbol opens the source file and reveals the symbol range.
-- Use `Codemap: Refresh Neighbors` to force a manual refresh.
+Codemap surfaces lightweight status updates in the status bar.
 
-## CodeLens Caller Counts
+## How To Tell An AI To Use Codemap
 
-- Functions and methods in supported files show a `Called from N places` CodeLens.
-- Clicking the lens opens the impact webview centered on that symbol.
-- Clicking a node in the webview jumps to its source location.
+Use direct, command-oriented prompts. Ask the AI to start from Codemap graph queries before raw file scanning.
 
-## SQLite Read Bridge
+### Prompt Template
 
-- Read commands use `sqlite3` against `index.db` in the workspace root.
-- Queries are restricted to read-only `SELECT`/`WITH` statements.
-- Missing or corrupt index files surface explicit user-facing errors.
+Copy/paste and fill in values:
 
-## Local Development
+```text
+Use the Codemap extension for this task.
+
+Goal: <your goal>
+Starting symbol(s): <symbol names>
+
+Do this workflow:
+1) Run "Repo Graph: Find Symbol" for each starting symbol.
+2) Run "Repo Graph: Show Impact" and summarize the highest-impact callers.
+3) Open "Repo Graph: Open Impact Webview" and identify 3 key hubs and 3 leaf nodes.
+4) If needed, run "Repo Graph: Open Repo Overview" with:
+	 - kind: all
+	 - edge scope: resolved
+	 - edge types: calls+inherits
+	 - rank balance: inbound
+	 - top N: 40
+5) Only then open source files for the top relevant symbols.
+6) Return:
+	 - symbols examined
+	 - dependency findings
+	 - proposed change points
+	 - risk notes
+```
+
+### Example: Change Impact Analysis
+
+```text
+Use Codemap first. I need impact analysis for symbol "payments.charge_customer".
+Run "Repo Graph: Show Impact" and "Repo Graph: Open Impact Webview".
+Summarize direct callers vs transitive callers, then list the first files I should modify.
+```
+
+### Example: Refactor Planning
+
+```text
+Use Codemap commands to plan a safe refactor of "AuthService".
+Start with "Repo Graph: Find Symbol", then "Repo Graph: Open Repo Overview".
+Identify central dependencies, suggest refactor order, and call out breakage risk.
+```
+
+### Good AI Instruction Patterns
+
+- "Use Codemap before searching file text."
+- "Show me graph evidence for each recommendation."
+- "List symbols and caller depth used to reach your conclusion."
+- "Limit code reads to files linked from Codemap results."
+
+## Troubleshooting
+
+- "Open a workspace folder first"
+	- Open the project root in VS Code.
+- "Symbol not found"
+	- Run `Codemap: Index Workspace` (or reindex), then retry.
+- SQLite/index errors
+	- Confirm `index.db` exists at workspace root and is up to date.
+- No on-save updates
+	- Confirm file extension is in the supported list above.
+
+## Development
 
 From this folder:
 
@@ -65,4 +175,4 @@ From this folder:
 npm test
 ```
 
-The test suite validates command wiring and CLI bridge behavior.
+The test suite validates command wiring and SQLite bridge behavior.
