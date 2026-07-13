@@ -51,7 +51,8 @@ How to use this file:
 | 31 | Repo Overview Minimum Degree Filter | feat/vscode-repo-overview-min-degree | Merged | Add command-time minimum degree filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL degree-threshold filtering behavior. | Users can remove low-connectivity nodes from overview slices without changing top-N controls. | [PR #35](https://github.com/jivfur/Codemap/pull/35) |
 | 32 | Repo Overview Minimum Inbound Filter | feat/vscode-repo-overview-min-inbound | Merged | Add command-time minimum inbound-call filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL inbound-threshold filtering behavior. | Users can bias overview slices toward heavily reused symbols without changing rank mode. | [PR #36](https://github.com/jivfur/Codemap/pull/36) |
 | 33 | Repo Overview Minimum Outbound Filter | feat/vscode-repo-overview-min-outbound | Merged | Add command-time minimum outbound-call filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL outbound-threshold filtering behavior. | Users can bias overview slices toward coordinator-style symbols without changing rank mode. | [PR #37](https://github.com/jivfur/Codemap/pull/37) |
-| 34 | Repo Overview Depth Bucket Control | feat/vscode-repo-overview-depth-buckets | In Progress | Add command-time control for the number of ranking buckets mapped into visual depth bands, and propagate it through overview metadata. | Unit tests for option forwarding and depth assignment behavior with configurable bucket bands. | Users can tune how many depth bands appear in repo overview without changing top-N or ranking mode. | Branch started |
+| 34 | Repo Overview Depth Bucket Control | feat/vscode-repo-overview-depth-buckets | Merged | Add command-time control for the number of ranking buckets mapped into visual depth bands, and propagate it through overview metadata. | Unit tests for option forwarding and depth assignment behavior with configurable bucket bands. | Users can tune how many depth bands appear in repo overview without changing top-N or ranking mode. | [PR #38](https://github.com/jivfur/Codemap/pull/38) |
+| 35 | Repo Overview Maximum Node Size Control | feat/vscode-repo-overview-max-node-size | In Progress | Add command-time control for maximum degree-weighted node radius and propagate it through overview sizing metadata. | Unit tests for option forwarding and node size clamping with configurable maximum size. | Users can prevent oversized hub nodes in dense overview graphs without switching to fixed-size mode. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -63,5 +64,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 34: Repo Overview Depth Bucket Control
-- Branch: feat/vscode-repo-overview-depth-buckets
+- PR 35: Repo Overview Maximum Node Size Control
+- Branch: feat/vscode-repo-overview-max-node-size

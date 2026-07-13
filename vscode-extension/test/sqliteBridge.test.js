@@ -157,13 +157,14 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     rankBalance: "balanced",
     labelMode: "short-kind",
     nodeSizeMode: "degree",
+    maxNodeSize: 16,
     maxLabelLength: 12,
     minDegree: 3,
     minInboundCalls: 2,
     minOutboundCalls: 1,
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size, min degree>=3, min inbound>=2, min outbound>=1, depth buckets=3, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size<=16, min degree>=3, min inbound>=2, min outbound>=1, depth buckets=3, top 5)");
   assert.ok(graph.nodes.length >= 1);
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
@@ -172,6 +173,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
   assert.equal(graph.nodes[0].inboundCalls, 7);
   assert.equal(graph.nodes[0].outboundCalls, 3);
   assert.equal(typeof graph.nodes[0].size, "number");
+  assert.ok(graph.nodes[0].size <= 16);
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
   assert.ok(calls.some((sql) => sql.includes("(inbound_calls + outbound_calls) DESC")));
