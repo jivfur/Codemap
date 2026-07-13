@@ -504,12 +504,24 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       });
       const parsedTop = Number(topInput);
       const limit = Number.isFinite(parsedTop) ? Math.max(5, Math.min(200, Math.floor(parsedTop))) : 40;
-      const bucketSize = Math.max(1, Math.floor(limit / 4));
+
+      const depthBucketsInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Depth Buckets",
+        prompt: "How many ranking buckets to map into visual depth bands?",
+        value: "4",
+        ignoreFocusOut: true,
+      });
+      const parsedDepthBuckets = Number(depthBucketsInput);
+      const depthBuckets = Number.isFinite(parsedDepthBuckets)
+        ? Math.max(2, Math.min(24, Math.floor(parsedDepthBuckets)))
+        : 4;
+      const bucketSize = Math.max(1, Math.floor(limit / depthBuckets));
 
       try {
         const overview = await repoOverviewWithSqlite(currentRoot, {
           limit,
           bucketSize,
+          depthBuckets,
           kind: selectedKind,
           edgeScope: selectedEdgeScope,
           edgeTypes: selectedEdgeTypes,
@@ -533,7 +545,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
           }
         );
       } catch (error) {

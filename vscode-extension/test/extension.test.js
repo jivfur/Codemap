@@ -484,6 +484,7 @@ test("openRepoOverview opens repository-wide graph", async () => {
   assert.deepEqual(receivedOptions, {
     limit: 40,
     bucketSize: 10,
+    depthBuckets: 4,
     kind: "all",
     edgeScope: "resolved",
     edgeTypes: "calls",

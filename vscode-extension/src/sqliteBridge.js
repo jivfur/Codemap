@@ -359,6 +359,11 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const limit = Number.isFinite(rawLimit) ? Math.max(5, Math.min(200, Math.floor(rawLimit))) : 40;
   const rawBucket = Number(options.bucketSize || 10);
   const bucketSize = Number.isFinite(rawBucket) ? Math.max(1, Math.floor(rawBucket)) : 10;
+  const rawDepthBuckets = Number(options.depthBuckets || 4);
+  const depthBuckets = Number.isFinite(rawDepthBuckets)
+    ? Math.max(2, Math.min(24, Math.floor(rawDepthBuckets)))
+    : 4;
+  const maxDepthBand = Math.max(1, depthBuckets - 1);
   const rawKind = String(options.kind || "all").toLowerCase();
   const kind = new Set(["all", "function", "method", "class", "const"]).has(rawKind) ? rawKind : "all";
   const rawEdgeScope = String(options.edgeScope || "resolved").toLowerCase();
@@ -441,14 +446,14 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     inboundCalls: Number(row.inbound_calls || 0),
     outboundCalls: Number(row.outbound_calls || 0),
     size: computeRepoOverviewNodeSize(row, nodeSizeMode),
-    depth: Math.min(2, Math.floor(index / bucketSize)),
+    depth: Math.min(maxDepthBand, Math.floor(index / bucketSize)),
     resolution: "resolved",
     kind: row.kind || "symbol",
   }));
 
   if (selectedNames.length === 0) {
     return {
-      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, top ${limit})`,
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
       nodes,
       edges: [],
     };
@@ -475,7 +480,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   );
 
   return {
-    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, top ${limit})`,
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
     nodes,
     edges: edges.map((row) => ({
       from: row.source,
