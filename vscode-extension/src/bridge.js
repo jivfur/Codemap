@@ -31,6 +31,21 @@ async function runGraphCommand(cwd, args, options = {}) {
   };
 }
 
+async function resolveGitHead(cwd, options = {}) {
+  const runner = options.runner || execFileAsync;
+
+  try {
+    const result = await runner("git", ["rev-parse", "HEAD"], {
+      cwd,
+      maxBuffer: 1024 * 1024,
+    });
+    const stdout = typeof result.stdout === "string" ? result.stdout.trim() : "";
+    return stdout || null;
+  } catch {
+    return null;
+  }
+}
+
 function parseSearchRows(lines) {
   return lines
     .filter((line) => line.startsWith("["))
@@ -45,5 +60,6 @@ function parseSearchRows(lines) {
 module.exports = {
   normalizeOutput,
   runGraphCommand,
+  resolveGitHead,
   parseSearchRows,
 };

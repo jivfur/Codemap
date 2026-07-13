@@ -358,6 +358,7 @@ test("on-save listener debounces and invokes changed-only index", async () => {
     schedule,
     cancelSchedule,
     saveDebounceMs: 300,
+    enableGitHeadPolling: false,
   });
 
   assert.equal(fake.saveDocumentListeners.length, 1);
@@ -372,6 +373,47 @@ test("on-save listener debounces and invokes changed-only index", async () => {
   assert.equal(runCalls.length, 0);
 
   await scheduled[1].fn();
+  assert.equal(runCalls.length, 1);
+  assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
+  assert.equal(fake.statusMessages.length, 1);
+});
+
+test("git HEAD polling triggers changed-only reindex when commit changes", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  const runCalls = [];
+  const scheduled = [];
+  const heads = ["111aaa", "111aaa", "222bbb"];
+
+  const schedule = (fn, delayMs) => {
+    const handle = { fn, delayMs, cancelled: false };
+    scheduled.push(handle);
+    return handle;
+  };
+
+  const cancelSchedule = (handle) => {
+    handle.cancelled = true;
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async (cwd, args) => {
+      runCalls.push({ cwd, args });
+      return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
+    },
+    resolveGitHead: async () => heads.shift() || null,
+    schedule,
+    cancelSchedule,
+    gitHeadPollMs: 1500,
+  });
+
+  assert.equal(scheduled.length, 1);
+  await scheduled[0].fn();
+  assert.equal(runCalls.length, 0);
+
+  await scheduled[1].fn();
+  assert.equal(runCalls.length, 0);
+
+  await scheduled[2].fn();
   assert.equal(runCalls.length, 1);
   assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
   assert.equal(fake.statusMessages.length, 1);

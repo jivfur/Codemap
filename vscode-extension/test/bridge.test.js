@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { normalizeOutput, parseSearchRows, runGraphCommand } = require("../src/bridge");
+const { normalizeOutput, parseSearchRows, resolveGitHead, runGraphCommand } = require("../src/bridge");
 
 test("normalizeOutput trims trailing spaces and drops empty lines", () => {
   const out = normalizeOutput("one  \n\n two\n");
@@ -46,4 +46,31 @@ test("runGraphCommand delegates to runner with graph.py", async () => {
   assert.deepEqual(calls[0].args, ["graph.py", "search", "abc"]);
   assert.equal(calls[0].options.cwd, "/tmp/repo");
   assert.deepEqual(result.lines, ["line1", "line2"]);
+});
+
+test("resolveGitHead returns trimmed SHA from git rev-parse", async () => {
+  const calls = [];
+  const fakeRunner = async (cmd, args, options) => {
+    calls.push({ cmd, args, options });
+    return {
+      stdout: "abc123\n",
+      stderr: "",
+    };
+  };
+
+  const head = await resolveGitHead("/tmp/repo", { runner: fakeRunner });
+  assert.equal(head, "abc123");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].cmd, "git");
+  assert.deepEqual(calls[0].args, ["rev-parse", "HEAD"]);
+  assert.equal(calls[0].options.cwd, "/tmp/repo");
+});
+
+test("resolveGitHead returns null when git command fails", async () => {
+  const fakeRunner = async () => {
+    throw new Error("not a git repo");
+  };
+
+  const head = await resolveGitHead("/tmp/repo", { runner: fakeRunner });
+  assert.equal(head, null);
 });

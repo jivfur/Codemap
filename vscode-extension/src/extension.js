@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { runGraphCommand } = require("./bridge");
+const { resolveGitHead, runGraphCommand } = require("./bridge");
 const {
   SqliteBridgeError,
   findSymbolLocation,
@@ -66,6 +66,7 @@ function isSupportedSavedDocument(workspaceRoot, document) {
 
 function activateWithApi(vscodeApi, context, deps = {}) {
   const runCommand = deps.runGraphCommand || runGraphCommand;
+  const resolveHead = deps.resolveGitHead || resolveGitHead;
   const searchWithSqlite = deps.searchSymbols || searchSymbols;
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
   const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
@@ -76,7 +77,12 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const schedule = deps.schedule || ((fn, delayMs) => setTimeout(fn, delayMs));
   const cancelSchedule = deps.cancelSchedule || ((handle) => clearTimeout(handle));
   const saveDebounceMs = Number(deps.saveDebounceMs || 500);
+  const gitHeadPollMs = Math.max(1000, Number(deps.gitHeadPollMs || 5000));
+  const enableGitHeadPolling = deps.enableGitHeadPolling !== false;
   const pendingSaveReindex = new Map();
+  let lastGitHead = null;
+  let pendingGitHeadPoll = null;
+  let gitHeadPollInFlight = false;
 
   async function openSymbolLocationByName(symbol) {
     const currentRoot = getWorkspaceRoot(vscodeApi);
@@ -148,6 +154,65 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
   const root = getWorkspaceRoot(vscodeApi);
   if (root) {
+    async function runChangedOnlyReindex(reasonLabel) {
+      try {
+        const result = await runCommand(root, ["index", "--changed-only"]);
+        const fallbackMessage = `Codemap ${reasonLabel} reindex complete.`;
+        const message = result.lines[0] || fallbackMessage;
+        if (typeof vscodeApi.window.setStatusBarMessage === "function") {
+          vscodeApi.window.setStatusBarMessage(message, 2500);
+        }
+      } catch (error) {
+        vscodeApi.window.showWarningMessage(`Codemap ${reasonLabel} reindex failed: ${error.message}`);
+      }
+    }
+
+    async function pollGitHeadAndMaybeReindex() {
+      if (gitHeadPollInFlight) {
+        return;
+      }
+
+      gitHeadPollInFlight = true;
+      try {
+        const currentHead = await resolveHead(root);
+        if (!currentHead) {
+          return;
+        }
+
+        if (!lastGitHead) {
+          lastGitHead = currentHead;
+          return;
+        }
+
+        if (currentHead !== lastGitHead) {
+          lastGitHead = currentHead;
+          await runChangedOnlyReindex("git update");
+        }
+      } finally {
+        gitHeadPollInFlight = false;
+      }
+    }
+
+    function scheduleGitHeadPoll() {
+      pendingGitHeadPoll = schedule(async () => {
+        pendingGitHeadPoll = null;
+        await pollGitHeadAndMaybeReindex();
+        scheduleGitHeadPoll();
+      }, gitHeadPollMs);
+    }
+
+    if (enableGitHeadPolling) {
+      scheduleGitHeadPoll();
+      register(context.subscriptions, {
+        dispose: () => {
+          if (pendingGitHeadPoll) {
+            cancelSchedule(pendingGitHeadPoll);
+            pendingGitHeadPoll = null;
+          }
+        },
+      });
+    }
+
     const provider = createCodemapTreeProvider(vscodeApi, root, {
       listSymbolsForFile: listSymbols,
       getNeighborsForSymbol: getNeighbors,
@@ -185,15 +250,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
         const handle = schedule(async () => {
           pendingSaveReindex.delete(filePath);
-          try {
-            const result = await runCommand(root, ["index", "--changed-only"]);
-            const message = result.lines[0] || "Codemap on-save reindex complete.";
-            if (typeof vscodeApi.window.setStatusBarMessage === "function") {
-              vscodeApi.window.setStatusBarMessage(message, 2500);
-            }
-          } catch (error) {
-            vscodeApi.window.showWarningMessage(`Codemap on-save reindex failed: ${error.message}`);
-          }
+          await runChangedOnlyReindex("on-save");
         }, saveDebounceMs);
 
         pendingSaveReindex.set(filePath, handle);
