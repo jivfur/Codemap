@@ -53,7 +53,8 @@ How to use this file:
 | 33 | Repo Overview Minimum Outbound Filter | feat/vscode-repo-overview-min-outbound | Merged | Add command-time minimum outbound-call filtering and propagate it through overview ranking selection and metadata. | Unit tests for option forwarding and SQL outbound-threshold filtering behavior. | Users can bias overview slices toward coordinator-style symbols without changing rank mode. | [PR #37](https://github.com/jivfur/Codemap/pull/37) |
 | 34 | Repo Overview Depth Bucket Control | feat/vscode-repo-overview-depth-buckets | Merged | Add command-time control for the number of ranking buckets mapped into visual depth bands, and propagate it through overview metadata. | Unit tests for option forwarding and depth assignment behavior with configurable bucket bands. | Users can tune how many depth bands appear in repo overview without changing top-N or ranking mode. | [PR #38](https://github.com/jivfur/Codemap/pull/38) |
 | 35 | Repo Overview Maximum Node Size Control | feat/vscode-repo-overview-max-node-size | Merged | Add command-time control for maximum degree-weighted node radius and propagate it through overview sizing metadata. | Unit tests for option forwarding and node size clamping with configurable maximum size. | Users can prevent oversized hub nodes in dense overview graphs without switching to fixed-size mode. | [PR #39](https://github.com/jivfur/Codemap/pull/39) |
-| 36 | Repo Overview Minimum Node Size Control | feat/vscode-repo-overview-min-node-size | In Progress | Add command-time control for minimum degree-weighted node radius and propagate it through overview sizing metadata. | Unit tests for option forwarding and node size clamping with configurable minimum size. | Users can preserve readability for low-degree nodes without forcing fixed-size mode. | Branch started |
+| 36 | Repo Overview Minimum Node Size Control | feat/vscode-repo-overview-min-node-size | Merged | Add command-time control for minimum degree-weighted node radius and propagate it through overview sizing metadata. | Unit tests for option forwarding and node size clamping with configurable minimum size. | Users can preserve readability for low-degree nodes without forcing fixed-size mode. | [PR #40](https://github.com/jivfur/Codemap/pull/40) |
+| 37 | Repo Overview Fixed Node Size Value Control | feat/vscode-repo-overview-fixed-node-size | In Progress | Add command-time control for fixed node radius and propagate it through overview node sizing metadata when fixed-size mode is selected. | Unit tests for option forwarding and fixed-size node rendering behavior. | Users can tune the exact fixed node radius instead of relying on a hardcoded value. | Branch started |
 
 ## Suggested Working Rules Per PR
 
@@ -65,5 +66,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 36: Repo Overview Minimum Node Size Control
-- Branch: feat/vscode-repo-overview-min-node-size
+- PR 37: Repo Overview Fixed Node Size Value Control
+- Branch: feat/vscode-repo-overview-fixed-node-size
