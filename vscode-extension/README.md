@@ -14,6 +14,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Repo Graph: Open Impact Webview` opens a lightweight SVG impact graph with clickable nodes.
 - `Repo Graph: Open Repo Overview` opens a bounded repository-wide overview slice for the top-ranked symbols.
 - Repo Overview prompts for symbol kind and top-N size so you can tune breadth before rendering.
+- Repo Overview also prompts for edge scope (`resolved` or `all`) to balance confidence vs exploration.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
 - The graph supports pan/zoom and node dragging for denser impact maps.
