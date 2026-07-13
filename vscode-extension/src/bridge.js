@@ -46,6 +46,21 @@ async function resolveGitHead(cwd, options = {}) {
   }
 }
 
+async function resolveGitWorkingTreeClean(cwd, options = {}) {
+  const runner = options.runner || execFileAsync;
+
+  try {
+    const result = await runner("git", ["status", "--porcelain"], {
+      cwd,
+      maxBuffer: 1024 * 1024,
+    });
+    const stdout = typeof result.stdout === "string" ? result.stdout.trim() : "";
+    return stdout.length === 0;
+  } catch {
+    return null;
+  }
+}
+
 function parseSearchRows(lines) {
   return lines
     .filter((line) => line.startsWith("["))
@@ -61,5 +76,6 @@ module.exports = {
   normalizeOutput,
   runGraphCommand,
   resolveGitHead,
+  resolveGitWorkingTreeClean,
   parseSearchRows,
 };

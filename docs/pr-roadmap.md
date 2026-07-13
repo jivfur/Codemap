@@ -58,7 +58,8 @@ How to use this file:
 | 38 | Repo Overview Conditional Size Prompts | feat/vscode-repo-overview-conditional-size-prompts | Merged | Ask only size inputs relevant to selected node-size mode (fixed prompt only for fixed mode; min/max prompts only for degree mode). | Unit tests asserting prompt flow and forwarded options per node-size mode. | Users avoid unnecessary prompts and complete overview setup faster with fewer invalid inputs. | [PR #42](https://github.com/jivfur/Codemap/pull/42) |
 | 39 | Repo Overview Cancel-Safe Prompt Flow | feat/vscode-repo-overview-cancel-safe-prompts | Merged | Treat cancel (`Esc`) on repo-overview prompts as an immediate abort instead of silently applying defaults and opening a graph. | Unit tests asserting that canceled quick-pick or input prompts do not call the overview query or open the webview. | Users can safely back out of the multi-step overview flow without triggering unintended queries. | [PR #43](https://github.com/jivfur/Codemap/pull/43) |
 | 40 | Git-Aware Changed-Only Reindex | feat/vscode-git-aware-reindex | Merged | Poll `git rev-parse HEAD` in the extension and trigger `index --changed-only` only when the checked-out commit changes (branch switch, pull, merge, rebase, reset). | Unit tests for HEAD resolver helper and polling flow that reindexes on SHA change but not on stable SHA. | Repo index freshness follows checked-out git state without reindexing on fetch-only updates that do not change the worktree. | [PR #44](https://github.com/jivfur/Codemap/pull/44) |
-| 41 | Manual Git Update Check Command | feat/vscode-git-update-check-command | In Progress | Add a command-palette action that performs an immediate git HEAD check and triggers changed-only reindex when the checked-out commit changed. | Unit tests for command registration and behavior for changed vs unchanged HEAD states. | Users can run an immediate refresh after fetch/pull workflows without waiting for the poll interval. | Branch in progress |
+| 41 | Manual Git Update Check Command | feat/vscode-git-update-check-command | Merged | Add a command-palette action that performs an immediate git HEAD check and triggers changed-only reindex when the checked-out commit changed. | Unit tests for command registration and behavior for changed vs unchanged HEAD states. | Users can run an immediate refresh after fetch/pull workflows without waiting for the poll interval. | [PR #45](https://github.com/jivfur/Codemap/pull/45) |
+| 42 | Git Snapshot Cache Restore | feat/vscode-git-snapshot-cache | In Progress | Cache changed-only index snapshots by git HEAD and restore a cached snapshot on clean branch switches or commit checkouts before rebuilding. | Unit tests for snapshot save/restore helpers and sync flow that restores cache when available, otherwise rebuilds and caches. | Users get branch-specific index snapshots that come back instantly when revisiting a known commit. | Branch in progress |
 
 ## Suggested Working Rules Per PR
 
@@ -70,5 +71,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 41: Manual Git Update Check Command
-- Branch: feat/vscode-git-update-check-command
+- PR 42: Git Snapshot Cache Restore
+- Branch: feat/vscode-git-snapshot-cache
