@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #25:
+Completed PR sequence through PR #27:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -88,9 +88,11 @@ Completed PR sequence through PR #25:
   - PR #22: depth filtering
   - PR #24: force-layout interactions
   - PR #25: repository overview mode
+  - PR #26: repository overview kind/top-N controls
+  - PR #27: repository overview edge scope controls
 
 Current candidate feature:
-- Repository overview edge scope controls (resolved-only vs all edges) to switch between high-confidence and exploratory views.
+- Repository overview edge type controls (calls-only vs calls+inherits) to include hierarchy context in bounded overviews.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

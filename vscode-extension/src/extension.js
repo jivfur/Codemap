@@ -415,6 +415,15 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       );
       const selectedEdgeScope = edgeScopePick?.edgeScope || "resolved";
 
+      const edgeTypesPick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Calls only", edgeTypes: "calls" },
+          { label: "Calls + Inheritance", edgeTypes: "calls+inherits" },
+        ],
+        { title: "Repo Graph: Overview Edge Types" }
+      );
+      const selectedEdgeTypes = edgeTypesPick?.edgeTypes || "calls";
+
       const topInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Size",
         prompt: "How many top symbols to include?",
@@ -431,6 +440,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           bucketSize,
           kind: selectedKind,
           edgeScope: selectedEdgeScope,
+          edgeTypes: selectedEdgeTypes,
         });
         if (!overview || overview.nodes.length === 0) {
           vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
@@ -443,7 +453,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           async (selectedSymbol) => {
             await openSymbolLocationByName(selectedSymbol);
           },
-          { panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, top ${limit})` }
+          {
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, top ${limit})`,
+          }
         );
       } catch (error) {
         vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "repo overview"));

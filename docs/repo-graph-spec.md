@@ -251,8 +251,9 @@ the editor, no separate app needed.
 plus the webview for deliberate exploration when you click through — no
 need to keep a graph panel open at all times.
 
-The next repository-level extension step is a bounded repo overview mode
-that shows a top-symbol slice of the call graph, not a raw full-graph dump.
+Current repository-level extension status includes a bounded repo overview mode
+with symbol kind, top-N size, and edge-scope controls; the next increment adds
+edge-type controls (calls-only vs calls+inherits) while keeping the view bounded.
 
 ## Known limitations (by design, not oversights)
 
