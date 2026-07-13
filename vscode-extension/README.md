@@ -12,8 +12,24 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - `Repo Graph: Show Impact` renders a structured reverse-dependency report for a symbol.
 - `Repo Graph: Reindex Workspace` runs a changed-only index refresh from the command palette.
 - `Repo Graph: Open Impact Webview` opens a lightweight SVG impact graph with clickable nodes.
+- `Repo Graph: Open Repo Overview` opens a bounded repository-wide overview slice for the top-ranked symbols.
+- Repo Overview prompts for symbol kind and top-N size so you can tune breadth before rendering.
+- Repo Overview also prompts for edge scope (`resolved` or `all`) to balance confidence vs exploration.
+- Repo Overview now supports edge types (`calls` or `calls+inherits`) to include class hierarchy relationships in overview graphs.
+- Repo Overview includes ranking balance controls (`inbound`, `balanced`, `outbound`) to prioritize hub style in top-symbol selection.
+- Repo Overview includes label mode controls (`qualified` or `short-kind`) to tune readability for dense graphs.
+- Repo Overview includes node size controls (`degree` or `fixed`) to emphasize structurally central symbols.
+- Repo Overview includes max label length control to keep node text readable in dense views.
+- Node hover tooltips show full qualified symbol names even when visible labels are truncated.
+- Hover tooltips also show node kind and inbound/outbound call counts for quick structural context.
+- Repo Overview includes a minimum degree filter to exclude low-connectivity symbols from dense overviews.
+- Repo Overview includes a minimum inbound-calls filter to focus on highly reused symbols.
+- Repo Overview includes a minimum outbound-calls filter to focus on high-fanout symbols.
+- Repo Overview includes configurable depth buckets to tune how ranking bands map to visual depth.
+- Repo Overview includes maximum node size control to cap degree-weighted hub emphasis.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
+- The graph supports pan/zoom and node dragging for denser impact maps.
 
 ## On-Save Reindex
 

@@ -185,6 +185,7 @@ test("activateWithApi registers expected commands", () => {
   assert.ok(fake.registered.has("codemap.reindexWorkspace"));
   assert.ok(fake.registered.has("codemap.showCallersForSymbol"));
   assert.ok(fake.registered.has("codemap.openImpactWebview"));
+  assert.ok(fake.registered.has("codemap.openRepoOverview"));
   assert.equal(fake.treeViews.length, 1);
   assert.equal(fake.codeLensRegistrations.length, 1);
   assert.ok(context.subscriptions.length >= 5);
@@ -452,4 +453,48 @@ test("openImpactWebview accepts direct symbol argument", async () => {
   await fake.registered.get("codemap.openImpactWebview")("pkg.mod.from.codelens");
   assert.equal(requestedSymbol, "pkg.mod.from.codelens");
   assert.equal(fake.webviewPanels.length, 1);
+});
+
+test("openRepoOverview opens repository-wide graph", async () => {
+  __resetImpactWebviewPanelForTests();
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  let receivedOptions = null;
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getRepoOverviewGraph: async (_root, options) => {
+      receivedOptions = options;
+      return {
+        target: "Repository Overview",
+        nodes: [
+          { id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" },
+          { id: "pkg.mod.beta", label: "pkg.mod.beta", depth: 1, resolution: "resolved" },
+        ],
+        edges: [{ from: "pkg.mod.alpha", to: "pkg.mod.beta", resolution: "resolved" }],
+      };
+    },
+    findSymbolLocation: async () => ({ path: "pkg/mod.py", start: 1, end: 1 }),
+  });
+
+  await fake.registered.get("codemap.openRepoOverview")();
+  assert.equal(fake.webviewPanels.length, 1);
+  assert.ok(fake.webviewPanels[0].title.includes("Repository Overview"));
+  assert.ok(fake.webviewPanels[0].webview.html.includes("Repository Overview"));
+  assert.deepEqual(receivedOptions, {
+    limit: 40,
+    bucketSize: 10,
+    depthBuckets: 4,
+    kind: "all",
+    edgeScope: "resolved",
+    edgeTypes: "calls",
+    rankBalance: "inbound",
+    labelMode: "short-kind",
+    nodeSizeMode: "degree",
+    maxNodeSize: 22,
+    maxLabelLength: 28,
+    minDegree: 0,
+    minInboundCalls: 0,
+    minOutboundCalls: 0,
+  });
 });

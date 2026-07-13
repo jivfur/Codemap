@@ -46,6 +46,10 @@ function bindParams(sql, params = []) {
   return bound;
 }
 
+function buildPlaceholders(count) {
+  return Array.from({ length: count }, () => "?").join(", ");
+}
+
 function assertReadonlyQuery(sql) {
   const trimmed = sql.trim();
   if (!/^with\b/i.test(trimmed) && !/^select\b/i.test(trimmed)) {
@@ -319,6 +323,177 @@ async function getImpactForSymbol(workspaceRoot, symbol, options = {}) {
   };
 }
 
+function truncateLabel(label, maxLabelLength) {
+  const value = String(label || "");
+  if (value.length <= maxLabelLength) {
+    return value;
+  }
+  return `${value.slice(0, Math.max(1, maxLabelLength - 3))}...`;
+}
+
+function formatRepoOverviewNodeLabel(qualifiedName, kind, labelMode, maxLabelLength) {
+  const qualified = String(qualifiedName || "");
+  if (labelMode === "qualified") {
+    return truncateLabel(qualified, maxLabelLength);
+  }
+
+  const nameParts = qualified.split(".");
+  const shortName = nameParts[nameParts.length - 1] || qualified;
+  const normalizedKind = String(kind || "symbol");
+  return truncateLabel(`${normalizedKind}: ${shortName}`, maxLabelLength);
+}
+
+function computeRepoOverviewNodeSize(row, nodeSizeMode, maxNodeSize) {
+  if (nodeSizeMode === "fixed") {
+    return 11;
+  }
+  const inbound = Number(row?.inbound_calls || 0);
+  const outbound = Number(row?.outbound_calls || 0);
+  const score = Math.max(0, inbound + outbound);
+  const scaled = 9 + Math.round(Math.log2(score + 1) * 3);
+  return Math.max(9, Math.min(maxNodeSize, scaled));
+}
+
+async function getRepoOverviewGraph(workspaceRoot, options = {}) {
+  const rawLimit = Number(options.limit || 40);
+  const limit = Number.isFinite(rawLimit) ? Math.max(5, Math.min(200, Math.floor(rawLimit))) : 40;
+  const rawBucket = Number(options.bucketSize || 10);
+  const bucketSize = Number.isFinite(rawBucket) ? Math.max(1, Math.floor(rawBucket)) : 10;
+  const rawDepthBuckets = Number(options.depthBuckets || 4);
+  const depthBuckets = Number.isFinite(rawDepthBuckets)
+    ? Math.max(2, Math.min(24, Math.floor(rawDepthBuckets)))
+    : 4;
+  const maxDepthBand = Math.max(1, depthBuckets - 1);
+  const rawKind = String(options.kind || "all").toLowerCase();
+  const kind = new Set(["all", "function", "method", "class", "const"]).has(rawKind) ? rawKind : "all";
+  const rawEdgeScope = String(options.edgeScope || "resolved").toLowerCase();
+  const edgeScope = rawEdgeScope === "all" ? "all" : "resolved";
+  const rawEdgeTypes = String(options.edgeTypes || "calls").toLowerCase();
+  const edgeTypes = rawEdgeTypes === "calls+inherits" ? "calls+inherits" : "calls";
+  const rawRankBalance = String(options.rankBalance || "inbound").toLowerCase();
+  const rankBalance = new Set(["inbound", "balanced", "outbound"]).has(rawRankBalance)
+    ? rawRankBalance
+    : "inbound";
+  const rawLabelMode = String(options.labelMode || "short-kind").toLowerCase();
+  const labelMode = rawLabelMode === "qualified" ? "qualified" : "short-kind";
+  const rawNodeSizeMode = String(options.nodeSizeMode || "degree").toLowerCase();
+  const nodeSizeMode = rawNodeSizeMode === "fixed" ? "fixed" : "degree";
+  const rawMaxNodeSize = Number(options.maxNodeSize || 22);
+  const maxNodeSize = Number.isFinite(rawMaxNodeSize)
+    ? Math.max(9, Math.min(60, Math.floor(rawMaxNodeSize)))
+    : 22;
+  const rawMaxLabelLength = Number(options.maxLabelLength || 28);
+  const maxLabelLength = Number.isFinite(rawMaxLabelLength)
+    ? Math.max(8, Math.min(120, Math.floor(rawMaxLabelLength)))
+    : 28;
+  const rawMinDegree = Number(options.minDegree || 0);
+  const minDegree = Number.isFinite(rawMinDegree)
+    ? Math.max(0, Math.min(10000, Math.floor(rawMinDegree)))
+    : 0;
+  const rawMinInboundCalls = Number(options.minInboundCalls || 0);
+  const minInboundCalls = Number.isFinite(rawMinInboundCalls)
+    ? Math.max(0, Math.min(10000, Math.floor(rawMinInboundCalls)))
+    : 0;
+  const rawMinOutboundCalls = Number(options.minOutboundCalls || 0);
+  const minOutboundCalls = Number.isFinite(rawMinOutboundCalls)
+    ? Math.max(0, Math.min(10000, Math.floor(rawMinOutboundCalls)))
+    : 0;
+  const resolvedOnlyClause = edgeScope === "resolved" ? " AND e.resolved = 1" : "";
+  const edgeTypeClause = edgeTypes === "calls+inherits" ? "('calls', 'inherits')" : "('calls')";
+  const sortExpression =
+    rankBalance === "outbound"
+      ? "outbound_calls DESC, inbound_calls DESC, s.qualified_name"
+      : rankBalance === "balanced"
+        ? "(inbound_calls + outbound_calls) DESC, inbound_calls DESC, outbound_calls DESC, s.qualified_name"
+        : "inbound_calls DESC, outbound_calls DESC, s.qualified_name";
+
+  const topRows = await queryRows(
+    workspaceRoot,
+    `
+    WITH inbound AS (
+      SELECT dst.id AS symbol_id, COUNT(*) AS count
+      FROM edges e
+      JOIN symbols dst ON dst.id = e.dst_id
+      WHERE e.edge_type IN ${edgeTypeClause}${resolvedOnlyClause}
+      GROUP BY dst.id
+    ),
+    outbound AS (
+      SELECT src.id AS symbol_id, COUNT(*) AS count
+      FROM edges e
+      JOIN symbols src ON src.id = e.src_id
+      WHERE e.edge_type IN ${edgeTypeClause}${resolvedOnlyClause}
+      GROUP BY src.id
+    )
+    SELECT s.qualified_name AS qualified_name,
+           s.kind AS kind,
+           COALESCE(inbound.count, 0) AS inbound_calls,
+           COALESCE(outbound.count, 0) AS outbound_calls
+    FROM symbols s
+    LEFT JOIN inbound ON inbound.symbol_id = s.id
+    LEFT JOIN outbound ON outbound.symbol_id = s.id
+        WHERE (? = 'all' OR s.kind = ?)
+      AND (COALESCE(inbound.count, 0) + COALESCE(outbound.count, 0)) >= ?
+      AND COALESCE(inbound.count, 0) >= ?
+      AND COALESCE(outbound.count, 0) >= ?
+    ORDER BY ${sortExpression}
+    LIMIT ?
+    `,
+    [kind, kind, minDegree, minInboundCalls, minOutboundCalls, limit],
+    options
+  );
+
+  const selectedNames = topRows.map((row) => row.qualified_name).filter(Boolean);
+  const nodes = topRows.map((row, index) => ({
+    id: row.qualified_name,
+    label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode, maxLabelLength),
+    fullLabel: row.qualified_name,
+    inboundCalls: Number(row.inbound_calls || 0),
+    outboundCalls: Number(row.outbound_calls || 0),
+    size: computeRepoOverviewNodeSize(row, nodeSizeMode, maxNodeSize),
+    depth: Math.min(maxDepthBand, Math.floor(index / bucketSize)),
+    resolution: "resolved",
+    kind: row.kind || "symbol",
+  }));
+
+  if (selectedNames.length === 0) {
+    return {
+      target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+      nodes,
+      edges: [],
+    };
+  }
+
+  const inClause = buildPlaceholders(selectedNames.length);
+  const edges = await queryRows(
+    workspaceRoot,
+    `
+    SELECT src.qualified_name AS source,
+           dst.qualified_name AS target,
+           e.resolved AS resolved
+    FROM edges e
+    JOIN symbols src ON src.id = e.src_id
+    JOIN symbols dst ON dst.id = e.dst_id
+    WHERE e.edge_type IN ${edgeTypeClause}
+      ${resolvedOnlyClause}
+      AND src.qualified_name IN (${inClause})
+      AND dst.qualified_name IN (${inClause})
+    ORDER BY source, target
+    `,
+    [...selectedNames, ...selectedNames],
+    options
+  );
+
+  return {
+    target: `Repository Overview (${kind}, ${edgeScope} edges, ${edgeTypes}, ${rankBalance} rank, ${labelMode} labels<=${maxLabelLength}, ${nodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+    nodes,
+    edges: edges.map((row) => ({
+      from: row.source,
+      to: row.target,
+      resolution: Number(row.resolved || 0) === 1 ? "resolved" : "unresolved",
+    })),
+  };
+}
+
 module.exports = {
   SqliteBridgeError,
   bindParams,
@@ -329,4 +504,5 @@ module.exports = {
   listSymbolsForFile,
   getNeighborsForSymbol,
   getImpactForSymbol,
+  getRepoOverviewGraph,
 };

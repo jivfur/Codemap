@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { SqliteBridgeError, bindParams, getImpactForSymbol, queryRows, searchSymbols } = require("../src/sqliteBridge");
+const { SqliteBridgeError, bindParams, getImpactForSymbol, getRepoOverviewGraph, queryRows, searchSymbols } = require("../src/sqliteBridge");
 
 function makeWorkspace() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "codemap-sqlite-"));
@@ -112,4 +112,81 @@ test("getImpactForSymbol returns deterministic BFS closure", async () => {
     { symbol: "pkg.mod.unresolved", depth: 1, resolved: false },
     { symbol: "pkg.mod.b", depth: 2, resolved: true },
   ]);
+});
+
+test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
+  const calls = [];
+  const root = makeWorkspace();
+  const dbPath = path.join(root, "index.db");
+  fs.writeFileSync(dbPath, "db", "utf-8");
+  const fakeRunner = async (_cmd, args) => {
+    const sql = args[2];
+    calls.push(sql);
+
+    if (sql.includes("WITH inbound AS")) {
+      return {
+        stdout: JSON.stringify([
+          { qualified_name: "pkg.mod.alpha", kind: "function", inbound_calls: 7, outbound_calls: 3 },
+          { qualified_name: "pkg.mod.beta", kind: "function", inbound_calls: 4, outbound_calls: 2 },
+          { qualified_name: "pkg.mod.gamma", kind: "class", inbound_calls: 2, outbound_calls: 1 },
+          { qualified_name: "pkg.mod.delta", kind: "function", inbound_calls: 1, outbound_calls: 1 },
+          { qualified_name: "pkg.mod.epsilon", kind: "method", inbound_calls: 1, outbound_calls: 0 },
+        ]),
+        stderr: "",
+      };
+    }
+
+    return {
+      stdout: JSON.stringify([
+        { source: "pkg.mod.alpha", target: "pkg.mod.beta", resolved: 1 },
+        { source: "pkg.mod.beta", target: "pkg.mod.gamma", resolved: 1 },
+      ]),
+      stderr: "",
+    };
+  };
+
+  const graph = await getRepoOverviewGraph("/tmp/repo", {
+    dbPath,
+    runner: fakeRunner,
+    limit: 3,
+    bucketSize: 2,
+    depthBuckets: 3,
+    kind: "function",
+    edgeScope: "all",
+    edgeTypes: "calls+inherits",
+    rankBalance: "balanced",
+    labelMode: "short-kind",
+    nodeSizeMode: "degree",
+    maxNodeSize: 16,
+    maxLabelLength: 12,
+    minDegree: 3,
+    minInboundCalls: 2,
+    minOutboundCalls: 1,
+  });
+
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size<=16, min degree>=3, min inbound>=2, min outbound>=1, depth buckets=3, top 5)");
+  assert.ok(graph.nodes.length >= 1);
+  assert.ok(graph.nodes.length <= 5);
+  assert.equal(graph.edges.length, 2);
+  assert.equal(graph.nodes[0].label, "function:...");
+  assert.equal(graph.nodes[0].fullLabel, "pkg.mod.alpha");
+  assert.equal(graph.nodes[0].inboundCalls, 7);
+  assert.equal(graph.nodes[0].outboundCalls, 3);
+  assert.equal(typeof graph.nodes[0].size, "number");
+  assert.ok(graph.nodes[0].size <= 16);
+  assert.equal(graph.nodes[0].depth, 0);
+  assert.equal(graph.nodes[2].depth, 1);
+  assert.ok(calls.some((sql) => sql.includes("(inbound_calls + outbound_calls) DESC")));
+  assert.ok(
+    calls.some(
+      (sql) =>
+        sql.includes("COALESCE(inbound.count, 0) + COALESCE(outbound.count, 0)") &&
+        sql.includes(">= 3")
+    )
+  );
+  assert.ok(calls.some((sql) => sql.includes("COALESCE(inbound.count, 0) >= 2")));
+  assert.ok(calls.some((sql) => sql.includes("COALESCE(outbound.count, 0) >= 1")));
+  assert.ok(calls.some((sql) => sql.includes("s.kind = 'function'")));
+  assert.ok(calls.some((sql) => !sql.includes("e.resolved = 1") && sql.includes("WHERE e.edge_type IN ('calls', 'inherits')")));
+  assert.ok(calls.some((sql) => sql.includes("src.qualified_name IN")));
 });

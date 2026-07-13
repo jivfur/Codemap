@@ -47,6 +47,10 @@
       {
         "command": "codemap.openImpactWebview",
         "title": "Repo Graph: Open Impact Webview"
+      },
+      {
+        "command": "codemap.openRepoOverview",
+        "title": "Repo Graph: Open Repo Overview"
       }
     ],
     "views": {

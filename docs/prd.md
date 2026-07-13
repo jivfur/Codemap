@@ -7,9 +7,9 @@ Codemap helps developers and coding agents understand and safely modify large co
 ## 2. Problem Statement
 
 Developers and AI coding tools often need to answer questions like:
-- "Where is this symbol defined?"
-- "What breaks if I change this function?"
-- "How do I navigate callers/callees without loading the full repo?"
+- Where is this symbol defined?
+- What breaks if I change this function?
+- How do I navigate callers/callees without loading the full repo?
 
 Traditional full-text search is noisy, and loading whole repositories into context is slow and expensive.
 
@@ -59,6 +59,13 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 - Render graph visually (SVG-based).
 - Provide max-depth filtering to reduce visual noise.
 
+### 5.4 Repo-Wide Overview UX
+
+- Open a repository-wide graph overview from the command palette.
+- Summarize the repo as a bounded slice of the call graph instead of a single-symbol impact closure.
+- Reuse the same visual language and navigation interactions as the impact webview.
+- Support focus controls so users can narrow the overview to top-ranked symbols.
+
 ## 6. Non-Functional Requirements
 
 - Deterministic outputs for the same repo state.
@@ -68,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #22:
+Completed PR sequence through PR #38:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -79,6 +86,24 @@ Completed PR sequence through PR #22:
   - PR #20: panel reuse
   - PR #21: SVG graph rendering
   - PR #22: depth filtering
+  - PR #24: force-layout interactions
+  - PR #25: repository overview mode
+  - PR #26: repository overview kind/top-N controls
+  - PR #27: repository overview edge scope controls
+  - PR #28: repository overview edge type controls
+  - PR #29: repository overview ranking balance controls
+  - PR #30: repository overview node label mode controls
+  - PR #31: repository overview node size mode controls
+  - PR #32: repository overview max label length control
+  - PR #33: repository overview full-label hover tooltips
+  - PR #34: repository overview hover tooltip metrics
+  - PR #35: repository overview minimum degree filter
+  - PR #36: repository overview minimum inbound-call filter
+  - PR #37: repository overview minimum outbound-call filter
+  - PR #38: repository overview depth bucket control
+
+Current candidate feature:
+- Repository overview maximum node size control to prevent oversized hub nodes.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

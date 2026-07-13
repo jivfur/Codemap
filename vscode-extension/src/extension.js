@@ -5,6 +5,7 @@ const {
   findSymbolLocation,
   getImpactForSymbol,
   getNeighborsForSymbol,
+  getRepoOverviewGraph,
   listSymbolsForFile,
   loadSymbolBody,
   searchSymbols,
@@ -69,6 +70,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
   const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
   const impactWithSqlite = deps.getImpactForSymbol || getImpactForSymbol;
+  const repoOverviewWithSqlite = deps.getRepoOverviewGraph || getRepoOverviewGraph;
   const listSymbols = deps.listSymbolsForFile || listSymbolsForFile;
   const getNeighbors = deps.getNeighborsForSymbol || getNeighborsForSymbol;
   const schedule = deps.schedule || ((fn, delayMs) => setTimeout(fn, delayMs));
@@ -380,6 +382,186 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         });
       } catch (error) {
         vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "impact webview"));
+      }
+    })
+  );
+
+  register(
+    context.subscriptions,
+    vscodeApi.commands.registerCommand("codemap.openRepoOverview", async () => {
+      const currentRoot = getWorkspaceRoot(vscodeApi);
+      if (!currentRoot) {
+        vscodeApi.window.showWarningMessage("Codemap: open a workspace folder first.");
+        return;
+      }
+
+      const kindPick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "All symbol kinds", kind: "all" },
+          { label: "Functions", kind: "function" },
+          { label: "Methods", kind: "method" },
+          { label: "Classes", kind: "class" },
+        ],
+        { title: "Repo Graph: Overview Symbol Kind" }
+      );
+      const selectedKind = kindPick?.kind || "all";
+
+      const edgeScopePick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Resolved edges only", edgeScope: "resolved" },
+          { label: "All edges (including unresolved)", edgeScope: "all" },
+        ],
+        { title: "Repo Graph: Overview Edge Scope" }
+      );
+      const selectedEdgeScope = edgeScopePick?.edgeScope || "resolved";
+
+      const edgeTypesPick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Calls only", edgeTypes: "calls" },
+          { label: "Calls + Inheritance", edgeTypes: "calls+inherits" },
+        ],
+        { title: "Repo Graph: Overview Edge Types" }
+      );
+      const selectedEdgeTypes = edgeTypesPick?.edgeTypes || "calls";
+
+      const rankBalancePick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Inbound-heavy ranking", rankBalance: "inbound" },
+          { label: "Balanced ranking", rankBalance: "balanced" },
+          { label: "Outbound-heavy ranking", rankBalance: "outbound" },
+        ],
+        { title: "Repo Graph: Overview Ranking Balance" }
+      );
+      const selectedRankBalance = rankBalancePick?.rankBalance || "inbound";
+
+      const labelModePick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Qualified symbol labels", labelMode: "qualified" },
+          { label: "Short labels with kind", labelMode: "short-kind" },
+        ],
+        { title: "Repo Graph: Overview Node Labels" }
+      );
+      const selectedLabelMode = labelModePick?.labelMode || "short-kind";
+
+      const nodeSizeModePick = await vscodeApi.window.showQuickPick(
+        [
+          { label: "Degree-weighted node sizes", nodeSizeMode: "degree" },
+          { label: "Fixed node sizes", nodeSizeMode: "fixed" },
+        ],
+        { title: "Repo Graph: Overview Node Sizes" }
+      );
+      const selectedNodeSizeMode = nodeSizeModePick?.nodeSizeMode || "degree";
+
+      const maxNodeSizeInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Maximum Node Size",
+        prompt: "Maximum node radius for degree-weighted sizing",
+        value: "22",
+        ignoreFocusOut: true,
+      });
+      const parsedMaxNodeSize = Number(maxNodeSizeInput);
+      const maxNodeSize = Number.isFinite(parsedMaxNodeSize)
+        ? Math.max(9, Math.min(60, Math.floor(parsedMaxNodeSize)))
+        : 22;
+
+      const labelLengthInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Label Length",
+        prompt: "Maximum node label length (characters)",
+        value: "28",
+        ignoreFocusOut: true,
+      });
+      const parsedLabelLength = Number(labelLengthInput);
+      const maxLabelLength = Number.isFinite(parsedLabelLength)
+        ? Math.max(8, Math.min(120, Math.floor(parsedLabelLength)))
+        : 28;
+
+      const minDegreeInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Minimum Degree",
+        prompt: "Minimum total calls (inbound + outbound) for included nodes",
+        value: "0",
+        ignoreFocusOut: true,
+      });
+      const parsedMinDegree = Number(minDegreeInput);
+      const minDegree = Number.isFinite(parsedMinDegree)
+        ? Math.max(0, Math.min(10000, Math.floor(parsedMinDegree)))
+        : 0;
+
+      const minInboundInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Minimum Inbound Calls",
+        prompt: "Minimum inbound call count for included nodes",
+        value: "0",
+        ignoreFocusOut: true,
+      });
+      const parsedMinInbound = Number(minInboundInput);
+      const minInboundCalls = Number.isFinite(parsedMinInbound)
+        ? Math.max(0, Math.min(10000, Math.floor(parsedMinInbound)))
+        : 0;
+
+      const minOutboundInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Minimum Outbound Calls",
+        prompt: "Minimum outbound call count for included nodes",
+        value: "0",
+        ignoreFocusOut: true,
+      });
+      const parsedMinOutbound = Number(minOutboundInput);
+      const minOutboundCalls = Number.isFinite(parsedMinOutbound)
+        ? Math.max(0, Math.min(10000, Math.floor(parsedMinOutbound)))
+        : 0;
+
+      const topInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Size",
+        prompt: "How many top symbols to include?",
+        value: "40",
+        ignoreFocusOut: true,
+      });
+      const parsedTop = Number(topInput);
+      const limit = Number.isFinite(parsedTop) ? Math.max(5, Math.min(200, Math.floor(parsedTop))) : 40;
+
+      const depthBucketsInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Depth Buckets",
+        prompt: "How many ranking buckets to map into visual depth bands?",
+        value: "4",
+        ignoreFocusOut: true,
+      });
+      const parsedDepthBuckets = Number(depthBucketsInput);
+      const depthBuckets = Number.isFinite(parsedDepthBuckets)
+        ? Math.max(2, Math.min(24, Math.floor(parsedDepthBuckets)))
+        : 4;
+      const bucketSize = Math.max(1, Math.floor(limit / depthBuckets));
+
+      try {
+        const overview = await repoOverviewWithSqlite(currentRoot, {
+          limit,
+          bucketSize,
+          depthBuckets,
+          kind: selectedKind,
+          edgeScope: selectedEdgeScope,
+          edgeTypes: selectedEdgeTypes,
+          rankBalance: selectedRankBalance,
+          labelMode: selectedLabelMode,
+          nodeSizeMode: selectedNodeSizeMode,
+          maxNodeSize,
+          maxLabelLength,
+          minDegree,
+          minInboundCalls,
+          minOutboundCalls,
+        });
+        if (!overview || overview.nodes.length === 0) {
+          vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
+          return;
+        }
+
+        openImpactWebviewPanel(
+          vscodeApi,
+          overview,
+          async (selectedSymbol) => {
+            await openSymbolLocationByName(selectedSymbol);
+          },
+          {
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+          }
+        );
+      } catch (error) {
+        vscodeApi.window.showErrorMessage(sqliteErrorMessage(error, "repo overview"));
       }
     })
   );

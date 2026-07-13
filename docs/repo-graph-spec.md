@@ -261,6 +261,10 @@ Implementation status (as of 2026-07-12):
 plus the webview for deliberate exploration when you click through — no
 need to keep a graph panel open at all times.
 
+Current repository-level extension status includes a bounded repo overview mode
+with symbol kind, top-N size, edge scope, and edge-type controls; the next
+increment adds configurable maximum node size while keeping the view bounded.
+
 ## Known limitations (by design, not oversights)
 
 - Call resolution is name/import based, not type-checked — dynamic
