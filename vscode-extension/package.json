@@ -45,6 +45,10 @@
         "title": "Repo Graph: Check Git Updates"
       },
       {
+        "command": "codemap.showGitSnapshotCacheStats",
+        "title": "Repo Graph: Snapshot Cache Stats"
+      },
+      {
         "command": "codemap.showCallersForSymbol",
         "title": "Codemap: Show Callers For Symbol"
       },

@@ -11,6 +11,10 @@ function getGitSnapshotCachePath(workspaceRoot, headSha) {
     return path.join(getGitSnapshotCacheDir(workspaceRoot), `${headSha}.db`);
 }
 
+function getGitSnapshotCacheRetentionLimit() {
+    return DEFAULT_MAX_SNAPSHOTS;
+}
+
 async function saveGitSnapshotCache(workspaceRoot, headSha, sourceDbPath) {
     if (!workspaceRoot || !headSha || !sourceDbPath) {
         return false;
@@ -33,7 +37,12 @@ async function listGitSnapshotCacheEntries(workspaceRoot) {
             cacheFiles.map(async (entry) => {
                 const fullPath = path.join(cacheDir, entry.name);
                 const stat = await fs.stat(fullPath);
-                return { path: fullPath, mtimeMs: stat.mtimeMs };
+                return {
+                    path: fullPath,
+                    headSha: path.basename(entry.name, ".db"),
+                    size: stat.size,
+                    mtimeMs: stat.mtimeMs,
+                };
             })
         );
         return stats.sort((left, right) => right.mtimeMs - left.mtimeMs);
@@ -43,6 +52,20 @@ async function listGitSnapshotCacheEntries(workspaceRoot) {
         }
         throw error;
     }
+}
+
+async function getGitSnapshotCacheStats(workspaceRoot) {
+    const entries = await listGitSnapshotCacheEntries(workspaceRoot);
+    const totalBytes = entries.reduce((sum, entry) => sum + entry.size, 0);
+
+    return {
+        retentionLimit: getGitSnapshotCacheRetentionLimit(),
+        entryCount: entries.length,
+        totalBytes,
+        newest: entries[0] || null,
+        oldest: entries.length > 0 ? entries[entries.length - 1] : null,
+        entries,
+    };
 }
 
 async function pruneGitSnapshotCache(workspaceRoot, maxSnapshots = DEFAULT_MAX_SNAPSHOTS) {
@@ -80,6 +103,8 @@ async function restoreGitSnapshotCache(workspaceRoot, headSha, targetDbPath) {
 module.exports = {
     getGitSnapshotCacheDir,
     getGitSnapshotCachePath,
+    getGitSnapshotCacheRetentionLimit,
+    getGitSnapshotCacheStats,
     listGitSnapshotCacheEntries,
     restoreGitSnapshotCache,
     pruneGitSnapshotCache,
