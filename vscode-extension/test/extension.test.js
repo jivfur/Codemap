@@ -460,6 +460,16 @@ test("openRepoOverview opens repository-wide graph", async () => {
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
   let receivedOptions = null;
+  const quickPicks = [
+    { kind: "all" },
+    { edgeScope: "resolved" },
+    { edgeTypes: "calls" },
+    { rankBalance: "inbound" },
+    { labelMode: "short-kind" },
+    { nodeSizeMode: "degree" },
+  ];
+
+  fake.api.window.showQuickPick = async () => quickPicks.shift() || undefined;
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: [] }),
@@ -591,4 +601,68 @@ test("openRepoOverview degree mode skips fixed radius prompt", async () => {
   assert.equal(inputTitles.includes("Repo Graph: Overview Fixed Node Size"), false);
   assert.ok(inputTitles.includes("Repo Graph: Overview Maximum Node Size"));
   assert.ok(inputTitles.includes("Repo Graph: Overview Minimum Node Size"));
+});
+
+test("openRepoOverview aborts when quick pick is canceled", async () => {
+  __resetImpactWebviewPanelForTests();
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  let callCount = 0;
+
+  fake.api.window.showQuickPick = async () => undefined;
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getRepoOverviewGraph: async () => {
+      callCount += 1;
+      return {
+        target: "Repository Overview",
+        nodes: [{ id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" }],
+        edges: [],
+      };
+    },
+  });
+
+  await fake.registered.get("codemap.openRepoOverview")();
+  assert.equal(callCount, 0);
+  assert.equal(fake.webviewPanels.length, 0);
+});
+
+test("openRepoOverview aborts when an input prompt is canceled", async () => {
+  __resetImpactWebviewPanelForTests();
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  let callCount = 0;
+  const quickPicks = [
+    { kind: "all" },
+    { edgeScope: "resolved" },
+    { edgeTypes: "calls" },
+    { rankBalance: "inbound" },
+    { labelMode: "short-kind" },
+    { nodeSizeMode: "degree" },
+  ];
+
+  fake.api.window.showQuickPick = async () => quickPicks.shift() || undefined;
+  fake.api.window.showInputBox = async (options) => {
+    if (options.title === "Repo Graph: Overview Label Length") {
+      return undefined;
+    }
+    return options.value;
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getRepoOverviewGraph: async () => {
+      callCount += 1;
+      return {
+        target: "Repository Overview",
+        nodes: [{ id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" }],
+        edges: [],
+      };
+    },
+  });
+
+  await fake.registered.get("codemap.openRepoOverview")();
+  assert.equal(callCount, 0);
+  assert.equal(fake.webviewPanels.length, 0);
 });

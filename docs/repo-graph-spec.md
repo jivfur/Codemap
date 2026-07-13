@@ -262,9 +262,10 @@ plus the webview for deliberate exploration when you click through — no
 need to keep a graph panel open at all times.
 
 Current repository-level extension status includes a bounded repo overview mode
-with symbol kind, top-N size, edge scope, edge-type controls, and configurable
-fixed node size. The next increment streamlines prompt UX by asking only the
-size controls relevant to the selected node-size mode.
+with symbol kind, top-N size, edge scope, edge-type controls, configurable
+fixed node size, and node-size-mode-aware prompts. The next increment makes the
+multi-step overview prompt flow cancel-safe so `Esc` aborts cleanly without
+opening a graph with defaulted values.
 
 ## Known limitations (by design, not oversights)
 
