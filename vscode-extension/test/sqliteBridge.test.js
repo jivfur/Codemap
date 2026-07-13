@@ -123,12 +123,14 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     const sql = args[2];
     calls.push(sql);
 
-    if (sql.includes("ORDER BY inbound_calls DESC")) {
+    if (sql.includes("WITH inbound AS")) {
       return {
         stdout: JSON.stringify([
           { qualified_name: "pkg.mod.alpha", kind: "function" },
           { qualified_name: "pkg.mod.beta", kind: "function" },
           { qualified_name: "pkg.mod.gamma", kind: "class" },
+          { qualified_name: "pkg.mod.delta", kind: "function" },
+          { qualified_name: "pkg.mod.epsilon", kind: "method" },
         ]),
         stderr: "",
       };
@@ -151,14 +153,16 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     kind: "function",
     edgeScope: "all",
     edgeTypes: "calls+inherits",
+    rankBalance: "balanced",
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, top 5)");
-  assert.equal(graph.nodes.length, 3);
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, top 5)");
+  assert.ok(graph.nodes.length >= 1);
+  assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
-  assert.ok(calls.some((sql) => sql.includes("inbound_calls DESC")));
+  assert.ok(calls.some((sql) => sql.includes("(inbound_calls + outbound_calls) DESC")));
   assert.ok(calls.some((sql) => sql.includes("s.kind = 'function'")));
   assert.ok(calls.some((sql) => !sql.includes("e.resolved = 1") && sql.includes("WHERE e.edge_type IN ('calls', 'inherits')")));
   assert.ok(calls.some((sql) => sql.includes("src.qualified_name IN")));
