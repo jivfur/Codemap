@@ -267,6 +267,8 @@ fixed node size, and node-size-mode-aware prompts. The next increment makes the
 multi-step overview prompt flow cancel-safe so `Esc` aborts cleanly without
 opening a graph with defaulted values. The following increment adds git-aware
 changed-only reindexing so index freshness tracks checked-out commit changes.
+The next increment adds a manual command-palette git update check to trigger an
+immediate reindex after explicit git workflows.
 
 ## Known limitations (by design, not oversights)
 

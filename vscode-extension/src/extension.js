@@ -169,25 +169,28 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
     async function pollGitHeadAndMaybeReindex() {
       if (gitHeadPollInFlight) {
-        return;
+        return "in-flight";
       }
 
       gitHeadPollInFlight = true;
       try {
         const currentHead = await resolveHead(root);
         if (!currentHead) {
-          return;
+          return "unavailable";
         }
 
         if (!lastGitHead) {
           lastGitHead = currentHead;
-          return;
+          return "baseline";
         }
 
         if (currentHead !== lastGitHead) {
           lastGitHead = currentHead;
           await runChangedOnlyReindex("git update");
+          return "changed";
         }
+
+        return "unchanged";
       } finally {
         gitHeadPollInFlight = false;
       }
@@ -232,6 +235,20 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       context.subscriptions,
       vscodeApi.commands.registerCommand("codemap.refreshNeighbors", () => {
         provider.refresh();
+      })
+    );
+
+    register(
+      context.subscriptions,
+      vscodeApi.commands.registerCommand("codemap.checkGitUpdates", async () => {
+        const result = await pollGitHeadAndMaybeReindex();
+        if (result === "unchanged" && typeof vscodeApi.window.setStatusBarMessage === "function") {
+          vscodeApi.window.setStatusBarMessage("Codemap git state unchanged.", 2500);
+        } else if (result === "baseline" && typeof vscodeApi.window.setStatusBarMessage === "function") {
+          vscodeApi.window.setStatusBarMessage("Codemap git baseline recorded.", 2500);
+        } else if (result === "unavailable") {
+          vscodeApi.window.showWarningMessage("Codemap git check failed: unable to resolve HEAD.");
+        }
       })
     );
 
