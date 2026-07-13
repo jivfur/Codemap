@@ -164,6 +164,7 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
   assert.equal(graph.nodes[0].label, "function:...");
+  assert.equal(graph.nodes[0].fullLabel, "pkg.mod.alpha");
   assert.equal(typeof graph.nodes[0].size, "number");
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);

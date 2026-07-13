@@ -8,7 +8,7 @@ function buildImpactGraphData(impactResult) {
   const target = String(impactResult?.target || "");
   const impacted = Array.isArray(impactResult?.impacted) ? impactResult.impacted : [];
 
-  const nodes = [{ id: target, label: target, depth: 0, resolution: "target" }];
+  const nodes = [{ id: target, label: target, fullLabel: target, depth: 0, resolution: "target" }];
   const edges = [];
 
   for (const row of impacted) {
@@ -19,6 +19,7 @@ function buildImpactGraphData(impactResult) {
     nodes.push({
       id: symbol,
       label: symbol,
+      fullLabel: symbol,
       depth: Number(row.depth || 1),
       resolution: row.resolved ? "resolved" : "unresolved",
     });
@@ -332,6 +333,11 @@ function renderImpactWebviewHtml(graphData) {
           circle.setAttribute('r', String(resolveNodeRadius(node)));
           circle.setAttribute('class', 'node-circle ' + nodeClass(node));
           circle.setAttribute('data-symbol', esc(node.id));
+
+          const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+          tooltip.textContent = String(node.fullLabel || node.id);
+          circle.appendChild(tooltip);
+
           circle.addEventListener('pointerdown', (event) => {
             event.stopPropagation();
             draggingNodeId = node.id;

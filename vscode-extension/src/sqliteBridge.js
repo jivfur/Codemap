@@ -422,6 +422,7 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
   const nodes = topRows.map((row, index) => ({
     id: row.qualified_name,
     label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode, maxLabelLength),
+    fullLabel: row.qualified_name,
     size: computeRepoOverviewNodeSize(row, nodeSizeMode),
     depth: Math.min(2, Math.floor(index / bucketSize)),
     resolution: "resolved",
