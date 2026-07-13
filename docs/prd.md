@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #32:
+Completed PR sequence through PR #33:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -95,9 +95,10 @@ Completed PR sequence through PR #32:
   - PR #30: repository overview node label mode controls
   - PR #31: repository overview node size mode controls
   - PR #32: repository overview max label length control
+  - PR #33: repository overview full-label hover tooltips
 
 Current candidate feature:
-- Repository overview full-label hover tooltips to preserve precise symbol identity with compact labels.
+- Repository overview hover tooltip metrics (kind and call-degree counts) for faster structural readout.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

@@ -46,7 +46,8 @@ How to use this file:
 | 26 | Repo Overview Node Label Modes | feat/vscode-repo-overview-kind-labels | Merged | Add command-time node label mode selection (qualified vs short-kind) and propagate it through overview node labels and panel metadata. | Unit tests for option forwarding and node label formatting. | Users can choose compact readable labels in dense overviews without losing stable symbol identity. | [PR #30](https://github.com/jivfur/Codemap/pull/30) |
 | 27 | Repo Overview Node Size Modes | feat/vscode-repo-overview-degree-size | Merged | Add command-time node size mode selection (degree-weighted vs fixed) and propagate it through overview node payload and panel metadata. | Unit tests for option forwarding, node size output, and webview size-aware render markers. | Users can visually prioritize high-degree symbols while keeping graph scope bounded. | [PR #31](https://github.com/jivfur/Codemap/pull/31) |
 | 28 | Repo Overview Label Length Control | feat/vscode-repo-overview-label-length | Merged | Add command-time max label length control and propagate it through overview label formatting and panel metadata. | Unit tests for option forwarding and deterministic label truncation behavior. | Users can keep overview labels readable without changing symbol identity or graph scope. | [PR #32](https://github.com/jivfur/Codemap/pull/32) |
-| 29 | Repo Overview Full-Label Hover Tooltips | feat/vscode-repo-overview-hover-labels | In Progress | Preserve full qualified symbol labels in graph payload and show them on node hover while keeping truncated visible labels. | Unit tests for payload `fullLabel` field and webview tooltip render markers. | Users can inspect exact symbol identity on hover without expanding graph label text. | Branch started |
+| 29 | Repo Overview Full-Label Hover Tooltips | feat/vscode-repo-overview-hover-labels | Merged | Preserve full qualified symbol labels in graph payload and show them on node hover while keeping truncated visible labels. | Unit tests for payload `fullLabel` field and webview tooltip render markers. | Users can inspect exact symbol identity on hover without expanding graph label text. | [PR #33](https://github.com/jivfur/Codemap/pull/33) |
+| 30 | Repo Overview Tooltip Metrics | feat/vscode-repo-overview-min-degree | In Progress | Enrich node hover tooltips with symbol kind and inbound/outbound call counts from overview ranking output. | Unit tests for tooltip render markers and node metric fields in overview payload. | Users can read core graph context from hover state without expanding labels or changing filters. | Branch updated |
 
 ## Suggested Working Rules Per PR
 
@@ -58,5 +59,5 @@ How to use this file:
 
 ## Next PR to Start
 
-- PR 29: Repo Overview Full-Label Hover Tooltips
-- Branch: feat/vscode-repo-overview-hover-labels
+- PR 30: Repo Overview Tooltip Metrics
+- Branch: feat/vscode-repo-overview-min-degree
