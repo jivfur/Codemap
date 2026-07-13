@@ -404,6 +404,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ],
         { title: "Repo Graph: Overview Symbol Kind" }
       );
+      if (!kindPick) {
+        return;
+      }
       const selectedKind = kindPick?.kind || "all";
 
       const edgeScopePick = await vscodeApi.window.showQuickPick(
@@ -413,6 +416,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ],
         { title: "Repo Graph: Overview Edge Scope" }
       );
+      if (!edgeScopePick) {
+        return;
+      }
       const selectedEdgeScope = edgeScopePick?.edgeScope || "resolved";
 
       const edgeTypesPick = await vscodeApi.window.showQuickPick(
@@ -422,6 +428,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ],
         { title: "Repo Graph: Overview Edge Types" }
       );
+      if (!edgeTypesPick) {
+        return;
+      }
       const selectedEdgeTypes = edgeTypesPick?.edgeTypes || "calls";
 
       const rankBalancePick = await vscodeApi.window.showQuickPick(
@@ -432,6 +441,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ],
         { title: "Repo Graph: Overview Ranking Balance" }
       );
+      if (!rankBalancePick) {
+        return;
+      }
       const selectedRankBalance = rankBalancePick?.rankBalance || "inbound";
 
       const labelModePick = await vscodeApi.window.showQuickPick(
@@ -441,6 +453,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ],
         { title: "Repo Graph: Overview Node Labels" }
       );
+      if (!labelModePick) {
+        return;
+      }
       const selectedLabelMode = labelModePick?.labelMode || "short-kind";
 
       const nodeSizeModePick = await vscodeApi.window.showQuickPick(
@@ -450,6 +465,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ],
         { title: "Repo Graph: Overview Node Sizes" }
       );
+      if (!nodeSizeModePick) {
+        return;
+      }
       const selectedNodeSizeMode = nodeSizeModePick?.nodeSizeMode || "degree";
 
       let fixedNodeSize = 11;
@@ -463,6 +481,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           value: "11",
           ignoreFocusOut: true,
         });
+        if (fixedNodeSizeInput === undefined) {
+          return;
+        }
         const parsedFixedNodeSize = Number(fixedNodeSizeInput);
         fixedNodeSize = Number.isFinite(parsedFixedNodeSize)
           ? Math.max(6, Math.min(40, Math.floor(parsedFixedNodeSize)))
@@ -474,6 +495,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           value: "22",
           ignoreFocusOut: true,
         });
+        if (maxNodeSizeInput === undefined) {
+          return;
+        }
         const parsedMaxNodeSize = Number(maxNodeSizeInput);
         maxNodeSize = Number.isFinite(parsedMaxNodeSize)
           ? Math.max(9, Math.min(60, Math.floor(parsedMaxNodeSize)))
@@ -485,6 +509,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           value: "9",
           ignoreFocusOut: true,
         });
+        if (minNodeSizeInput === undefined) {
+          return;
+        }
         const parsedMinNodeSize = Number(minNodeSizeInput);
         const minNodeSizeBase = Number.isFinite(parsedMinNodeSize)
           ? Math.max(9, Math.min(60, Math.floor(parsedMinNodeSize)))
@@ -498,6 +525,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         value: "28",
         ignoreFocusOut: true,
       });
+      if (labelLengthInput === undefined) {
+        return;
+      }
       const parsedLabelLength = Number(labelLengthInput);
       const maxLabelLength = Number.isFinite(parsedLabelLength)
         ? Math.max(8, Math.min(120, Math.floor(parsedLabelLength)))
@@ -509,6 +539,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         value: "0",
         ignoreFocusOut: true,
       });
+      if (minDegreeInput === undefined) {
+        return;
+      }
       const parsedMinDegree = Number(minDegreeInput);
       const minDegree = Number.isFinite(parsedMinDegree)
         ? Math.max(0, Math.min(10000, Math.floor(parsedMinDegree)))
@@ -520,6 +553,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         value: "0",
         ignoreFocusOut: true,
       });
+      if (minInboundInput === undefined) {
+        return;
+      }
       const parsedMinInbound = Number(minInboundInput);
       const minInboundCalls = Number.isFinite(parsedMinInbound)
         ? Math.max(0, Math.min(10000, Math.floor(parsedMinInbound)))
@@ -531,6 +567,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         value: "0",
         ignoreFocusOut: true,
       });
+      if (minOutboundInput === undefined) {
+        return;
+      }
       const parsedMinOutbound = Number(minOutboundInput);
       const minOutboundCalls = Number.isFinite(parsedMinOutbound)
         ? Math.max(0, Math.min(10000, Math.floor(parsedMinOutbound)))
@@ -542,6 +581,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         value: "40",
         ignoreFocusOut: true,
       });
+      if (topInput === undefined) {
+        return;
+      }
       const parsedTop = Number(topInput);
       const limit = Number.isFinite(parsedTop) ? Math.max(5, Math.min(200, Math.floor(parsedTop))) : 40;
 
@@ -551,6 +593,9 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         value: "4",
         ignoreFocusOut: true,
       });
+      if (depthBucketsInput === undefined) {
+        return;
+      }
       const parsedDepthBuckets = Number(depthBucketsInput);
       const depthBuckets = Number.isFinite(parsedDepthBuckets)
         ? Math.max(2, Math.min(24, Math.floor(parsedDepthBuckets)))
