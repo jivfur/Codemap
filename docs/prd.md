@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #45:
+Completed PR sequence through PR #46:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -108,9 +108,10 @@ Completed PR sequence through PR #45:
   - PR #43: repository overview cancel-safe prompt flow
   - PR #44: git-aware changed-only reindex on checked-out commit changes
   - PR #45: manual git update check command
+  - PR #46: git snapshot cache restore
 
 Current candidate feature:
-- Git snapshot cache restore for clean branch switches and commit checkouts.
+- Git snapshot cache pruning to keep commit-keyed snapshots bounded.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 
