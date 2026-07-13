@@ -19,6 +19,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - Repo Overview includes ranking balance controls (`inbound`, `balanced`, `outbound`) to prioritize hub style in top-symbol selection.
 - Repo Overview includes label mode controls (`qualified` or `short-kind`) to tune readability for dense graphs.
 - Repo Overview includes node size controls (`degree` or `fixed`) to emphasize structurally central symbols.
+- Repo Overview includes max label length control to keep node text readable in dense views.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
 - The graph supports pan/zoom and node dragging for denser impact maps.

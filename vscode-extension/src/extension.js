@@ -452,6 +452,17 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       );
       const selectedNodeSizeMode = nodeSizeModePick?.nodeSizeMode || "degree";
 
+      const labelLengthInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Label Length",
+        prompt: "Maximum node label length (characters)",
+        value: "28",
+        ignoreFocusOut: true,
+      });
+      const parsedLabelLength = Number(labelLengthInput);
+      const maxLabelLength = Number.isFinite(parsedLabelLength)
+        ? Math.max(8, Math.min(120, Math.floor(parsedLabelLength)))
+        : 28;
+
       const topInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Size",
         prompt: "How many top symbols to include?",
@@ -472,6 +483,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           rankBalance: selectedRankBalance,
           labelMode: selectedLabelMode,
           nodeSizeMode: selectedNodeSizeMode,
+          maxLabelLength,
         });
         if (!overview || overview.nodes.length === 0) {
           vscodeApi.window.showInformationMessage("No symbols found for repository overview.");
@@ -485,7 +497,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels, ${selectedNodeSizeMode} size, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, top ${limit})`,
           }
         );
       } catch (error) {

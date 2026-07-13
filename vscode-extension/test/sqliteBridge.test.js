@@ -156,13 +156,14 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     rankBalance: "balanced",
     labelMode: "short-kind",
     nodeSizeMode: "degree",
+    maxLabelLength: 12,
   });
 
-  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels, degree size, top 5)");
+  assert.equal(graph.target, "Repository Overview (function, all edges, calls+inherits, balanced rank, short-kind labels<=12, degree size, top 5)");
   assert.ok(graph.nodes.length >= 1);
   assert.ok(graph.nodes.length <= 5);
   assert.equal(graph.edges.length, 2);
-  assert.equal(graph.nodes[0].label, "function: alpha");
+  assert.equal(graph.nodes[0].label, "function:...");
   assert.equal(typeof graph.nodes[0].size, "number");
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
