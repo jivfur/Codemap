@@ -500,3 +500,95 @@ test("openRepoOverview opens repository-wide graph", async () => {
     minOutboundCalls: 0,
   });
 });
+
+test("openRepoOverview fixed size mode only prompts for fixed radius", async () => {
+  __resetImpactWebviewPanelForTests();
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  let receivedOptions = null;
+  const inputTitles = [];
+  const quickPicks = [
+    { kind: "all" },
+    { edgeScope: "resolved" },
+    { edgeTypes: "calls" },
+    { rankBalance: "inbound" },
+    { labelMode: "short-kind" },
+    { nodeSizeMode: "fixed" },
+  ];
+
+  fake.api.window.showQuickPick = async () => quickPicks.shift() || null;
+  fake.api.window.showInputBox = async (options) => {
+    inputTitles.push(options.title);
+    if (options.title === "Repo Graph: Overview Fixed Node Size") {
+      return "17";
+    }
+    return options.value;
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getRepoOverviewGraph: async (_root, options) => {
+      receivedOptions = options;
+      return {
+        target: "Repository Overview",
+        nodes: [{ id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" }],
+        edges: [],
+      };
+    },
+  });
+
+  await fake.registered.get("codemap.openRepoOverview")();
+  assert.equal(receivedOptions.nodeSizeMode, "fixed");
+  assert.equal(receivedOptions.fixedNodeSize, 17);
+  assert.ok(inputTitles.includes("Repo Graph: Overview Fixed Node Size"));
+  assert.equal(inputTitles.includes("Repo Graph: Overview Maximum Node Size"), false);
+  assert.equal(inputTitles.includes("Repo Graph: Overview Minimum Node Size"), false);
+});
+
+test("openRepoOverview degree mode skips fixed radius prompt", async () => {
+  __resetImpactWebviewPanelForTests();
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  let receivedOptions = null;
+  const inputTitles = [];
+  const quickPicks = [
+    { kind: "all" },
+    { edgeScope: "resolved" },
+    { edgeTypes: "calls" },
+    { rankBalance: "inbound" },
+    { labelMode: "short-kind" },
+    { nodeSizeMode: "degree" },
+  ];
+
+  fake.api.window.showQuickPick = async () => quickPicks.shift() || null;
+  fake.api.window.showInputBox = async (options) => {
+    inputTitles.push(options.title);
+    if (options.title === "Repo Graph: Overview Maximum Node Size") {
+      return "21";
+    }
+    if (options.title === "Repo Graph: Overview Minimum Node Size") {
+      return "10";
+    }
+    return options.value;
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: [] }),
+    getRepoOverviewGraph: async (_root, options) => {
+      receivedOptions = options;
+      return {
+        target: "Repository Overview",
+        nodes: [{ id: "pkg.mod.alpha", label: "pkg.mod.alpha", depth: 0, resolution: "resolved" }],
+        edges: [],
+      };
+    },
+  });
+
+  await fake.registered.get("codemap.openRepoOverview")();
+  assert.equal(receivedOptions.nodeSizeMode, "degree");
+  assert.equal(receivedOptions.maxNodeSize, 21);
+  assert.equal(receivedOptions.minNodeSize, 10);
+  assert.equal(inputTitles.includes("Repo Graph: Overview Fixed Node Size"), false);
+  assert.ok(inputTitles.includes("Repo Graph: Overview Maximum Node Size"));
+  assert.ok(inputTitles.includes("Repo Graph: Overview Minimum Node Size"));
+});

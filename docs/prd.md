@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #40:
+Completed PR sequence through PR #41:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -103,9 +103,10 @@ Completed PR sequence through PR #40:
   - PR #38: repository overview depth bucket control
   - PR #39: repository overview maximum node size control
   - PR #40: repository overview minimum node size control
+  - PR #41: repository overview fixed node size value control
 
 Current candidate feature:
-- Repository overview fixed node size value control for fixed-size mode.
+- Repository overview conditional size prompts by node-size mode.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 

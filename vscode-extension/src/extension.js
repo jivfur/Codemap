@@ -452,39 +452,45 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       );
       const selectedNodeSizeMode = nodeSizeModePick?.nodeSizeMode || "degree";
 
-      const fixedNodeSizeInput = await vscodeApi.window.showInputBox({
-        title: "Repo Graph: Overview Fixed Node Size",
-        prompt: "Node radius to use when node size mode is fixed",
-        value: "11",
-        ignoreFocusOut: true,
-      });
-      const parsedFixedNodeSize = Number(fixedNodeSizeInput);
-      const fixedNodeSize = Number.isFinite(parsedFixedNodeSize)
-        ? Math.max(6, Math.min(40, Math.floor(parsedFixedNodeSize)))
-        : 11;
+      let fixedNodeSize = 11;
+      let minNodeSize = 9;
+      let maxNodeSize = 22;
 
-      const maxNodeSizeInput = await vscodeApi.window.showInputBox({
-        title: "Repo Graph: Overview Maximum Node Size",
-        prompt: "Maximum node radius for degree-weighted sizing",
-        value: "22",
-        ignoreFocusOut: true,
-      });
-      const parsedMaxNodeSize = Number(maxNodeSizeInput);
-      const maxNodeSize = Number.isFinite(parsedMaxNodeSize)
-        ? Math.max(9, Math.min(60, Math.floor(parsedMaxNodeSize)))
-        : 22;
+      if (selectedNodeSizeMode === "fixed") {
+        const fixedNodeSizeInput = await vscodeApi.window.showInputBox({
+          title: "Repo Graph: Overview Fixed Node Size",
+          prompt: "Node radius to use when node size mode is fixed",
+          value: "11",
+          ignoreFocusOut: true,
+        });
+        const parsedFixedNodeSize = Number(fixedNodeSizeInput);
+        fixedNodeSize = Number.isFinite(parsedFixedNodeSize)
+          ? Math.max(6, Math.min(40, Math.floor(parsedFixedNodeSize)))
+          : 11;
+      } else {
+        const maxNodeSizeInput = await vscodeApi.window.showInputBox({
+          title: "Repo Graph: Overview Maximum Node Size",
+          prompt: "Maximum node radius for degree-weighted sizing",
+          value: "22",
+          ignoreFocusOut: true,
+        });
+        const parsedMaxNodeSize = Number(maxNodeSizeInput);
+        maxNodeSize = Number.isFinite(parsedMaxNodeSize)
+          ? Math.max(9, Math.min(60, Math.floor(parsedMaxNodeSize)))
+          : 22;
 
-      const minNodeSizeInput = await vscodeApi.window.showInputBox({
-        title: "Repo Graph: Overview Minimum Node Size",
-        prompt: "Minimum node radius for degree-weighted sizing",
-        value: "9",
-        ignoreFocusOut: true,
-      });
-      const parsedMinNodeSize = Number(minNodeSizeInput);
-      const minNodeSizeBase = Number.isFinite(parsedMinNodeSize)
-        ? Math.max(9, Math.min(60, Math.floor(parsedMinNodeSize)))
-        : 9;
-      const minNodeSize = Math.min(minNodeSizeBase, maxNodeSize);
+        const minNodeSizeInput = await vscodeApi.window.showInputBox({
+          title: "Repo Graph: Overview Minimum Node Size",
+          prompt: "Minimum node radius for degree-weighted sizing",
+          value: "9",
+          ignoreFocusOut: true,
+        });
+        const parsedMinNodeSize = Number(minNodeSizeInput);
+        const minNodeSizeBase = Number.isFinite(parsedMinNodeSize)
+          ? Math.max(9, Math.min(60, Math.floor(parsedMinNodeSize)))
+          : 9;
+        minNodeSize = Math.min(minNodeSizeBase, maxNodeSize);
+      }
 
       const labelLengthInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Label Length",
