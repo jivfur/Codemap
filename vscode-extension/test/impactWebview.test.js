@@ -38,6 +38,8 @@ test("renderImpactWebviewHtml embeds target and script payload", () => {
   assert.ok(html.includes("renderGraph("));
   assert.ok(html.includes("runForceLayout("));
   assert.ok(html.includes("resolveNodeRadius("));
+  assert.ok(html.includes("buildNodeTooltip("));
+  assert.ok(html.includes("node.inboundCalls"));
   assert.ok(html.includes("node.fullLabel || node.id"));
   assert.ok(html.includes("createElementNS('http://www.w3.org/2000/svg', 'title')"));
   assert.ok(html.includes("pointermove"));

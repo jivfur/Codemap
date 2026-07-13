@@ -168,6 +168,22 @@ function renderImpactWebviewHtml(graphData) {
         return clamp(size, 8, 24);
       }
 
+      function buildNodeTooltip(node) {
+        const lines = [String(node.fullLabel || node.id || '')];
+        if (node.kind) {
+          lines.push('kind: ' + String(node.kind));
+        }
+        const inbound = Number(node.inboundCalls);
+        const outbound = Number(node.outboundCalls);
+        if (Number.isFinite(inbound) || Number.isFinite(outbound)) {
+          lines.push(
+            'calls: in ' + (Number.isFinite(inbound) ? String(inbound) : '?') +
+            ', out ' + (Number.isFinite(outbound) ? String(outbound) : '?')
+          );
+        }
+        return lines.join('\n');
+      }
+
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
       }
@@ -335,7 +351,7 @@ function renderImpactWebviewHtml(graphData) {
           circle.setAttribute('data-symbol', esc(node.id));
 
           const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-          tooltip.textContent = String(node.fullLabel || node.id);
+          tooltip.textContent = buildNodeTooltip(node);
           circle.appendChild(tooltip);
 
           circle.addEventListener('pointerdown', (event) => {

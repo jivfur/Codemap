@@ -423,6 +423,8 @@ async function getRepoOverviewGraph(workspaceRoot, options = {}) {
     id: row.qualified_name,
     label: formatRepoOverviewNodeLabel(row.qualified_name, row.kind, labelMode, maxLabelLength),
     fullLabel: row.qualified_name,
+    inboundCalls: Number(row.inbound_calls || 0),
+    outboundCalls: Number(row.outbound_calls || 0),
     size: computeRepoOverviewNodeSize(row, nodeSizeMode),
     depth: Math.min(2, Math.floor(index / bucketSize)),
     resolution: "resolved",

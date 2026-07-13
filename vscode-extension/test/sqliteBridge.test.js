@@ -126,11 +126,11 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
     if (sql.includes("WITH inbound AS")) {
       return {
         stdout: JSON.stringify([
-          { qualified_name: "pkg.mod.alpha", kind: "function" },
-          { qualified_name: "pkg.mod.beta", kind: "function" },
-          { qualified_name: "pkg.mod.gamma", kind: "class" },
-          { qualified_name: "pkg.mod.delta", kind: "function" },
-          { qualified_name: "pkg.mod.epsilon", kind: "method" },
+          { qualified_name: "pkg.mod.alpha", kind: "function", inbound_calls: 7, outbound_calls: 3 },
+          { qualified_name: "pkg.mod.beta", kind: "function", inbound_calls: 4, outbound_calls: 2 },
+          { qualified_name: "pkg.mod.gamma", kind: "class", inbound_calls: 2, outbound_calls: 1 },
+          { qualified_name: "pkg.mod.delta", kind: "function", inbound_calls: 1, outbound_calls: 1 },
+          { qualified_name: "pkg.mod.epsilon", kind: "method", inbound_calls: 1, outbound_calls: 0 },
         ]),
         stderr: "",
       };
@@ -165,6 +165,8 @@ test("getRepoOverviewGraph returns bounded top-symbol overview", async () => {
   assert.equal(graph.edges.length, 2);
   assert.equal(graph.nodes[0].label, "function:...");
   assert.equal(graph.nodes[0].fullLabel, "pkg.mod.alpha");
+  assert.equal(graph.nodes[0].inboundCalls, 7);
+  assert.equal(graph.nodes[0].outboundCalls, 3);
   assert.equal(typeof graph.nodes[0].size, "number");
   assert.equal(graph.nodes[0].depth, 0);
   assert.equal(graph.nodes[2].depth, 1);
