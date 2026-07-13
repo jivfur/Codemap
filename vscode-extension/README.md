@@ -26,6 +26,7 @@ This folder contains the initial scaffold for a VS Code extension that bridges t
 - Repo Overview includes a minimum inbound-calls filter to focus on highly reused symbols.
 - Repo Overview includes a minimum outbound-calls filter to focus on high-fanout symbols.
 - Repo Overview includes configurable depth buckets to tune how ranking bands map to visual depth.
+- Repo Overview includes maximum node size control to cap degree-weighted hub emphasis.
 - Re-running impact webview commands reuses the same panel and refreshes its graph.
 - The webview supports max-depth filtering to focus exploration on near callers first.
 - The graph supports pan/zoom and node dragging for denser impact maps.

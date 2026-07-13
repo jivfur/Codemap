@@ -452,6 +452,17 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       );
       const selectedNodeSizeMode = nodeSizeModePick?.nodeSizeMode || "degree";
 
+      const maxNodeSizeInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Maximum Node Size",
+        prompt: "Maximum node radius for degree-weighted sizing",
+        value: "22",
+        ignoreFocusOut: true,
+      });
+      const parsedMaxNodeSize = Number(maxNodeSizeInput);
+      const maxNodeSize = Number.isFinite(parsedMaxNodeSize)
+        ? Math.max(9, Math.min(60, Math.floor(parsedMaxNodeSize)))
+        : 22;
+
       const labelLengthInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Label Length",
         prompt: "Maximum node label length (characters)",
@@ -528,6 +539,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           rankBalance: selectedRankBalance,
           labelMode: selectedLabelMode,
           nodeSizeMode: selectedNodeSizeMode,
+          maxNodeSize,
           maxLabelLength,
           minDegree,
           minInboundCalls,
@@ -545,7 +557,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
           }
         );
       } catch (error) {
