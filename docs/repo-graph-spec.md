@@ -266,7 +266,9 @@ with symbol kind, top-N size, edge scope, edge-type controls, configurable
 fixed node size, and node-size-mode-aware prompts. The next increment makes the
 multi-step overview prompt flow cancel-safe so `Esc` aborts cleanly without
 opening a graph with defaulted values. The following increment adds git-aware
-changed-only reindexing so index freshness tracks checked-out commit changes.
+changed-only reindexing so index freshness tracks checked-out commit changes. The next increment adds cached
+git snapshot restore so clean branch switches can reuse an index snapshot keyed
+by commit SHA instead of rebuilding every time.
 The next increment adds a manual command-palette git update check to trigger an
 immediate reindex after explicit git workflows.
 

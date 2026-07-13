@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { normalizeOutput, parseSearchRows, resolveGitHead, runGraphCommand } = require("../src/bridge");
+const { normalizeOutput, parseSearchRows, resolveGitHead, resolveGitWorkingTreeClean, runGraphCommand } = require("../src/bridge");
 
 test("normalizeOutput trims trailing spaces and drops empty lines", () => {
   const out = normalizeOutput("one  \n\n two\n");
@@ -73,4 +73,38 @@ test("resolveGitHead returns null when git command fails", async () => {
 
   const head = await resolveGitHead("/tmp/repo", { runner: fakeRunner });
   assert.equal(head, null);
+});
+
+test("resolveGitWorkingTreeClean returns true for clean status", async () => {
+  const fakeRunner = async (cmd, args, options) => {
+    assert.equal(cmd, "git");
+    assert.deepEqual(args, ["status", "--porcelain"]);
+    assert.equal(options.cwd, "/tmp/repo");
+    return {
+      stdout: "",
+      stderr: "",
+    };
+  };
+
+  const clean = await resolveGitWorkingTreeClean("/tmp/repo", { runner: fakeRunner });
+  assert.equal(clean, true);
+});
+
+test("resolveGitWorkingTreeClean returns false for dirty status", async () => {
+  const fakeRunner = async () => ({
+    stdout: " M src/changed.py\n",
+    stderr: "",
+  });
+
+  const clean = await resolveGitWorkingTreeClean("/tmp/repo", { runner: fakeRunner });
+  assert.equal(clean, false);
+});
+
+test("resolveGitWorkingTreeClean returns null when git command fails", async () => {
+  const fakeRunner = async () => {
+    throw new Error("not a git repo");
+  };
+
+  const clean = await resolveGitWorkingTreeClean("/tmp/repo", { runner: fakeRunner });
+  assert.equal(clean, null);
 });

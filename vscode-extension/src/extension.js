@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { resolveGitHead, runGraphCommand } = require("./bridge");
+const { resolveGitHead, resolveGitWorkingTreeClean, runGraphCommand } = require("./bridge");
 const {
   SqliteBridgeError,
   findSymbolLocation,
@@ -12,6 +12,7 @@ const {
 } = require("./sqliteBridge");
 const { createCallerCodeLensProvider } = require("./codelens");
 const { buildImpactGraphData, openImpactWebviewPanel } = require("./impactWebview");
+const { restoreGitSnapshotCache, saveGitSnapshotCache } = require("./gitSnapshotCache");
 const { createCodemapTreeProvider } = require("./treeView");
 
 const SUPPORTED_EXTENSIONS = new Set([".py", ".js", ".jsx", ".ts", ".tsx"]);
@@ -67,6 +68,9 @@ function isSupportedSavedDocument(workspaceRoot, document) {
 function activateWithApi(vscodeApi, context, deps = {}) {
   const runCommand = deps.runGraphCommand || runGraphCommand;
   const resolveHead = deps.resolveGitHead || resolveGitHead;
+  const resolveWorkingTreeClean = deps.resolveGitWorkingTreeClean || resolveGitWorkingTreeClean;
+  const restoreSnapshotCache = deps.restoreGitSnapshotCache || restoreGitSnapshotCache;
+  const saveSnapshotCache = deps.saveGitSnapshotCache || saveGitSnapshotCache;
   const searchWithSqlite = deps.searchSymbols || searchSymbols;
   const loadBodyWithSqlite = deps.loadSymbolBody || loadSymbolBody;
   const findLocationWithSqlite = deps.findSymbolLocation || findSymbolLocation;
@@ -80,7 +84,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
   const gitHeadPollMs = Math.max(1000, Number(deps.gitHeadPollMs || 5000));
   const enableGitHeadPolling = deps.enableGitHeadPolling !== false;
   const pendingSaveReindex = new Map();
-  let lastGitHead = null;
+  let lastSyncedGitHead = null;
   let pendingGitHeadPoll = null;
   let gitHeadPollInFlight = false;
 
@@ -154,6 +158,15 @@ function activateWithApi(vscodeApi, context, deps = {}) {
 
   const root = getWorkspaceRoot(vscodeApi);
   if (root) {
+    const indexDbPath = path.join(root, "index.db");
+    const lastSyncedGitHeadKey = "codemap.lastSyncedGitHead";
+    const workspaceState = context.workspaceState || {
+      get: () => null,
+      update: async () => { },
+    };
+
+    lastSyncedGitHead = workspaceState.get(lastSyncedGitHeadKey, null);
+
     async function runChangedOnlyReindex(reasonLabel) {
       try {
         const result = await runCommand(root, ["index", "--changed-only"]);
@@ -167,7 +180,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
       }
     }
 
-    async function pollGitHeadAndMaybeReindex() {
+    async function syncGitSnapshot(reasonLabel) {
       if (gitHeadPollInFlight) {
         return "in-flight";
       }
@@ -179,21 +192,53 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           return "unavailable";
         }
 
-        if (!lastGitHead) {
-          lastGitHead = currentHead;
+        const workingTreeClean = await resolveWorkingTreeClean(root);
+        if (workingTreeClean === null) {
+          return "unavailable";
+        }
+
+        if (lastSyncedGitHead === null) {
+          if (workingTreeClean) {
+            const restored = await restoreSnapshotCache(root, currentHead, indexDbPath);
+            if (restored) {
+              lastSyncedGitHead = currentHead;
+              await workspaceState.update(lastSyncedGitHeadKey, currentHead);
+              return "restored";
+            }
+          }
+
+          lastSyncedGitHead = currentHead;
+          await workspaceState.update(lastSyncedGitHeadKey, currentHead);
           return "baseline";
         }
 
-        if (currentHead !== lastGitHead) {
-          lastGitHead = currentHead;
-          await runChangedOnlyReindex("git update");
-          return "changed";
+        if (currentHead === lastSyncedGitHead) {
+          return "unchanged";
         }
 
-        return "unchanged";
+        if (workingTreeClean) {
+          const restored = await restoreSnapshotCache(root, currentHead, indexDbPath);
+          if (restored) {
+            lastSyncedGitHead = currentHead;
+            await workspaceState.update(lastSyncedGitHeadKey, currentHead);
+            return "restored";
+          }
+        }
+
+        await runChangedOnlyReindex(reasonLabel);
+        if (workingTreeClean) {
+          await saveSnapshotCache(root, currentHead, indexDbPath);
+        }
+        lastSyncedGitHead = currentHead;
+        await workspaceState.update(lastSyncedGitHeadKey, currentHead);
+        return workingTreeClean ? "rebuilt-and-cached" : "rebuilt";
       } finally {
         gitHeadPollInFlight = false;
       }
+    }
+
+    async function pollGitHeadAndMaybeReindex() {
+      return syncGitSnapshot("git update");
     }
 
     function scheduleGitHeadPoll() {
@@ -205,6 +250,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
     }
 
     if (enableGitHeadPolling) {
+      void syncGitSnapshot("git startup");
       scheduleGitHeadPoll();
       register(context.subscriptions, {
         dispose: () => {
@@ -241,11 +287,15 @@ function activateWithApi(vscodeApi, context, deps = {}) {
     register(
       context.subscriptions,
       vscodeApi.commands.registerCommand("codemap.checkGitUpdates", async () => {
-        const result = await pollGitHeadAndMaybeReindex();
+        const result = await syncGitSnapshot("git update");
         if (result === "unchanged" && typeof vscodeApi.window.setStatusBarMessage === "function") {
           vscodeApi.window.setStatusBarMessage("Codemap git state unchanged.", 2500);
-        } else if (result === "baseline" && typeof vscodeApi.window.setStatusBarMessage === "function") {
-          vscodeApi.window.setStatusBarMessage("Codemap git baseline recorded.", 2500);
+        } else if (result === "restored" && typeof vscodeApi.window.setStatusBarMessage === "function") {
+          vscodeApi.window.setStatusBarMessage("Codemap git snapshot restored.", 2500);
+        } else if (result === "rebuilt-and-cached" && typeof vscodeApi.window.setStatusBarMessage === "function") {
+          vscodeApi.window.setStatusBarMessage("Codemap git snapshot rebuilt and cached.", 2500);
+        } else if (result === "rebuilt" && typeof vscodeApi.window.setStatusBarMessage === "function") {
+          vscodeApi.window.setStatusBarMessage("Codemap git snapshot rebuilt.", 2500);
         } else if (result === "unavailable") {
           vscodeApi.window.showWarningMessage("Codemap git check failed: unable to resolve HEAD.");
         }

@@ -384,7 +384,8 @@ test("git HEAD polling triggers changed-only reindex when commit changes", async
   const context = { subscriptions: [] };
   const runCalls = [];
   const scheduled = [];
-  const heads = ["111aaa", "111aaa", "222bbb"];
+  const heads = [null, "111aaa", "222bbb"];
+  const cacheCalls = [];
 
   const schedule = (fn, delayMs) => {
     const handle = { fn, delayMs, cancelled: false };
@@ -402,6 +403,12 @@ test("git HEAD polling triggers changed-only reindex when commit changes", async
       return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
     },
     resolveGitHead: async () => heads.shift() || null,
+    resolveGitWorkingTreeClean: async () => true,
+    restoreGitSnapshotCache: async () => false,
+    saveGitSnapshotCache: async () => {
+      cacheCalls.push("save");
+      return true;
+    },
     schedule,
     cancelSchedule,
     gitHeadPollMs: 1500,
@@ -418,23 +425,31 @@ test("git HEAD polling triggers changed-only reindex when commit changes", async
   assert.equal(runCalls.length, 1);
   assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
   assert.equal(fake.statusMessages.length, 1);
+  assert.equal(cacheCalls.length, 1);
 });
 
 test("checkGitUpdates command triggers changed-only reindex when HEAD changed", async () => {
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
   const runCalls = [];
-  let headCall = 0;
+  const state = new Map([["codemap.lastSyncedGitHead", "abc111"]]);
+
+  context.workspaceState = {
+    get: (key, defaultValue) => (state.has(key) ? state.get(key) : defaultValue),
+    update: async (key, value) => {
+      state.set(key, value);
+    },
+  };
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async (cwd, args) => {
       runCalls.push({ cwd, args });
       return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
     },
-    resolveGitHead: async () => {
-      headCall += 1;
-      return headCall === 1 ? "abc111" : "def222";
-    },
+    resolveGitHead: async () => "def222",
+    resolveGitWorkingTreeClean: async () => true,
+    restoreGitSnapshotCache: async () => false,
+    saveGitSnapshotCache: async () => true,
     enableGitHeadPolling: false,
   });
 
@@ -449,10 +464,21 @@ test("checkGitUpdates command triggers changed-only reindex when HEAD changed", 
 test("checkGitUpdates command reports unchanged HEAD", async () => {
   const fake = makeFakeVscode();
   const context = { subscriptions: [] };
+  const state = new Map([["codemap.lastSyncedGitHead", "abc111"]]);
+
+  context.workspaceState = {
+    get: (key, defaultValue) => (state.has(key) ? state.get(key) : defaultValue),
+    update: async (key, value) => {
+      state.set(key, value);
+    },
+  };
 
   activateWithApi(fake.api, context, {
     runGraphCommand: async () => ({ lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] }),
     resolveGitHead: async () => "abc111",
+    resolveGitWorkingTreeClean: async () => true,
+    restoreGitSnapshotCache: async () => false,
+    saveGitSnapshotCache: async () => true,
     enableGitHeadPolling: false,
   });
 
@@ -461,6 +487,78 @@ test("checkGitUpdates command reports unchanged HEAD", async () => {
   await cmd();
 
   assert.ok(fake.statusMessages.includes("Codemap git state unchanged."));
+});
+
+test("checkGitUpdates command restores cached snapshot for a clean new HEAD", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  const state = new Map([["codemap.lastSyncedGitHead", "abc111"]]);
+  const calls = [];
+
+  context.workspaceState = {
+    get: (key, defaultValue) => (state.has(key) ? state.get(key) : defaultValue),
+    update: async (key, value) => {
+      state.set(key, value);
+    },
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async (cwd, args) => {
+      calls.push({ cwd, args });
+      return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
+    },
+    resolveGitHead: async () => "def222",
+    resolveGitWorkingTreeClean: async () => true,
+    restoreGitSnapshotCache: async () => true,
+    saveGitSnapshotCache: async () => {
+      throw new Error("save should not be called when snapshot is restored");
+    },
+    enableGitHeadPolling: false,
+  });
+
+  await fake.registered.get("codemap.checkGitUpdates")();
+
+  assert.equal(calls.length, 0);
+  assert.ok(fake.statusMessages.includes("Codemap git snapshot restored."));
+  assert.equal(state.get("codemap.lastSyncedGitHead"), "def222");
+});
+
+test("checkGitUpdates command rebuilds and caches when no snapshot exists", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  const state = new Map([["codemap.lastSyncedGitHead", "abc111"]]);
+  const calls = [];
+  let savedHead = null;
+
+  context.workspaceState = {
+    get: (key, defaultValue) => (state.has(key) ? state.get(key) : defaultValue),
+    update: async (key, value) => {
+      state.set(key, value);
+    },
+  };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async (cwd, args) => {
+      calls.push({ cwd, args });
+      return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
+    },
+    resolveGitHead: async () => "def222",
+    resolveGitWorkingTreeClean: async () => true,
+    restoreGitSnapshotCache: async () => false,
+    saveGitSnapshotCache: async (_root, headSha) => {
+      savedHead = headSha;
+      return true;
+    },
+    enableGitHeadPolling: false,
+  });
+
+  await fake.registered.get("codemap.checkGitUpdates")();
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
+  assert.equal(savedHead, "def222");
+  assert.ok(fake.statusMessages.includes("Codemap git snapshot rebuilt and cached."));
+  assert.equal(state.get("codemap.lastSyncedGitHead"), "def222");
 });
 
 test("showCallersForSymbol command opens resolved selection", async () => {
