@@ -463,6 +463,18 @@ function activateWithApi(vscodeApi, context, deps = {}) {
         ? Math.max(9, Math.min(60, Math.floor(parsedMaxNodeSize)))
         : 22;
 
+      const minNodeSizeInput = await vscodeApi.window.showInputBox({
+        title: "Repo Graph: Overview Minimum Node Size",
+        prompt: "Minimum node radius for degree-weighted sizing",
+        value: "9",
+        ignoreFocusOut: true,
+      });
+      const parsedMinNodeSize = Number(minNodeSizeInput);
+      const minNodeSizeBase = Number.isFinite(parsedMinNodeSize)
+        ? Math.max(9, Math.min(60, Math.floor(parsedMinNodeSize)))
+        : 9;
+      const minNodeSize = Math.min(minNodeSizeBase, maxNodeSize);
+
       const labelLengthInput = await vscodeApi.window.showInputBox({
         title: "Repo Graph: Overview Label Length",
         prompt: "Maximum node label length (characters)",
@@ -539,6 +551,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
           rankBalance: selectedRankBalance,
           labelMode: selectedLabelMode,
           nodeSizeMode: selectedNodeSizeMode,
+          minNodeSize,
           maxNodeSize,
           maxLabelLength,
           minDegree,
@@ -557,7 +570,7 @@ function activateWithApi(vscodeApi, context, deps = {}) {
             await openSymbolLocationByName(selectedSymbol);
           },
           {
-            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size<=${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
+            panelTitle: `Codemap Repository Overview (${selectedKind}, ${selectedEdgeScope} edges, ${selectedEdgeTypes}, ${selectedRankBalance} rank, ${selectedLabelMode} labels<=${maxLabelLength}, ${selectedNodeSizeMode} size=${minNodeSize}-${maxNodeSize}, min degree>=${minDegree}, min inbound>=${minInboundCalls}, min outbound>=${minOutboundCalls}, depth buckets=${depthBuckets}, top ${limit})`,
           }
         );
       } catch (error) {

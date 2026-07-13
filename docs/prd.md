@@ -75,7 +75,7 @@ Traditional full-text search is noisy, and loading whole repositories into conte
 
 ## 7. Delivery Plan Status (As Implemented)
 
-Completed PR sequence through PR #38:
+Completed PR sequence through PR #39:
 - CLI graph query capabilities and incremental indexing improvements
 - Core test/CI baseline
 - VS Code extension scaffold + SQLite read bridge
@@ -101,9 +101,10 @@ Completed PR sequence through PR #38:
   - PR #36: repository overview minimum inbound-call filter
   - PR #37: repository overview minimum outbound-call filter
   - PR #38: repository overview depth bucket control
+  - PR #39: repository overview maximum node size control
 
 Current candidate feature:
-- Repository overview maximum node size control to prevent oversized hub nodes.
+- Repository overview minimum node size control to improve low-degree readability.
 
 See `docs/pr-roadmap.md` for detailed PR-by-PR history and links.
 
