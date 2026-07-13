@@ -41,6 +41,10 @@
         "title": "Repo Graph: Reindex Workspace"
       },
       {
+        "command": "codemap.checkGitUpdates",
+        "title": "Repo Graph: Check Git Updates"
+      },
+      {
         "command": "codemap.showCallersForSymbol",
         "title": "Codemap: Show Callers For Symbol"
       },

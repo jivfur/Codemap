@@ -183,6 +183,7 @@ test("activateWithApi registers expected commands", () => {
   assert.ok(fake.registered.has("codemap.findSymbol"));
   assert.ok(fake.registered.has("codemap.showImpact"));
   assert.ok(fake.registered.has("codemap.reindexWorkspace"));
+  assert.ok(fake.registered.has("codemap.checkGitUpdates"));
   assert.ok(fake.registered.has("codemap.showCallersForSymbol"));
   assert.ok(fake.registered.has("codemap.openImpactWebview"));
   assert.ok(fake.registered.has("codemap.openRepoOverview"));
@@ -417,6 +418,49 @@ test("git HEAD polling triggers changed-only reindex when commit changes", async
   assert.equal(runCalls.length, 1);
   assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
   assert.equal(fake.statusMessages.length, 1);
+});
+
+test("checkGitUpdates command triggers changed-only reindex when HEAD changed", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+  const runCalls = [];
+  let headCall = 0;
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async (cwd, args) => {
+      runCalls.push({ cwd, args });
+      return { lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] };
+    },
+    resolveGitHead: async () => {
+      headCall += 1;
+      return headCall === 1 ? "abc111" : "def222";
+    },
+    enableGitHeadPolling: false,
+  });
+
+  const cmd = fake.registered.get("codemap.checkGitUpdates");
+  await cmd();
+  await cmd();
+
+  assert.equal(runCalls.length, 1);
+  assert.deepEqual(runCalls[0], { cwd: "/tmp/repo", args: ["index", "--changed-only"] });
+});
+
+test("checkGitUpdates command reports unchanged HEAD", async () => {
+  const fake = makeFakeVscode();
+  const context = { subscriptions: [] };
+
+  activateWithApi(fake.api, context, {
+    runGraphCommand: async () => ({ lines: ["Indexed: 1 | Skipped: 0 | Total supported: 1"] }),
+    resolveGitHead: async () => "abc111",
+    enableGitHeadPolling: false,
+  });
+
+  const cmd = fake.registered.get("codemap.checkGitUpdates");
+  await cmd();
+  await cmd();
+
+  assert.ok(fake.statusMessages.includes("Codemap git state unchanged."));
 });
 
 test("showCallersForSymbol command opens resolved selection", async () => {
